@@ -34,12 +34,6 @@ public class Token
 			type = TokenType.NUMBER;
 	}
 	
-	// Returns the length of the token value stored
-	public int valueLength()
-	{
-		return value.length();
-	}
-	
 	public void ToString()
 	{
 		if (value != null)
