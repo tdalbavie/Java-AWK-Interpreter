@@ -117,10 +117,6 @@ public class Lexer
 		String number = "";
 		boolean foundPoint = false;
 		
-		// Checks to see if first character is a number
-		if (sh.Peek(0) == '.')
-			foundPoint = true;
-		
 		// Loops until it finds a character that does not match awk number syntax.
 
 		while(Character.isDigit(sh.Peek(0)) || sh.Peek(0) == '.')
