@@ -34,11 +34,16 @@ public class Token
 			type = TokenType.NUMBER;
 	}
 	
-	public void ToString()
+	public String ToStringValue()
 	{
 		if (value != null)
-			System.out.print(type + "(" + value + ")");
+			return new String(type + "(" + value + ")");
 		else
-			System.out.print(type);
+			return type.toString();
+	}
+	
+	public String ToStringPosition()
+	{
+		return new String("Line Number: " + lineNumber + " Character Position: " + charPosition);
 	}
 }

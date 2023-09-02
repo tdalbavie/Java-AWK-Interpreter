@@ -100,6 +100,9 @@ public class Lexer
 	{
 		// Holds the word to be added to the token
 		String word = "";
+		// Holds first character position of the number
+		int charPositionCount = charPosition;
+		
 		// Loops until it finds a character that does not match awk word syntax.
 		while(Character.isAlphabetic(sh.Peek(0)) || Character.isDigit(sh.Peek(0)) || sh.Peek(0) == '_')
 		{
@@ -107,7 +110,11 @@ public class Lexer
 			charPosition++;
 		}
 		
-		return new Token(word, lineNumber, charPosition);
+		// Throws an exception if there is an invalid character still attached to the word.
+		if (Character.isWhitespace(sh.Peek(0)) == false && sh.Peek(0) != '\r' && sh.Peek(0) != '\n' && sh.Peek(0) != '\0')
+			throw new IllegalArgumentException("Words contain invalid character(s)");
+		
+		return new Token(word, lineNumber, charPositionCount);
 	}
 	
 	// Peeks at following characters until full number is found.
@@ -116,15 +123,17 @@ public class Lexer
 		// Holds the number to be added to the token
 		String number = "";
 		boolean foundPoint = false;
+		// Holds first character position of the number
+		int charPositionCount = charPosition;
 		
 		// Loops until it finds a character that does not match awk number syntax.
-
 		while(Character.isDigit(sh.Peek(0)) || sh.Peek(0) == '.')
 		{
-			if(foundPoint == true && sh.Peek(0) == '.')
-			{
-				throw new InputMismatchException("Number contains more than one decimal point");
-			}
+			// Throws exception if foundPoint is already true.
+			if (foundPoint == true && sh.Peek(0) == '.')
+				throw new IllegalArgumentException("Number contains more than one decimal point");
+			
+			// Sets foundPoint to true 
 			else if (foundPoint == false && sh.Peek(0) == '.')
 			{
 				foundPoint = true;
@@ -137,7 +146,11 @@ public class Lexer
 				charPosition++;
 			}
 		}
+		
+		// Throws an exception if there is an invalid character still attached to the number.
+		if (Character.isWhitespace(sh.Peek(0)) == false && sh.Peek(0) != '\r' && sh.Peek(0) != '\n' && sh.Peek(0) != '\0')
+			throw new IllegalArgumentException("Numbers contains invalid character(s)");
 			
-		return new Token(number, lineNumber, charPosition);
+		return new Token(number, lineNumber, charPositionCount);
 	}
 }

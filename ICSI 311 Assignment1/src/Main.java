@@ -9,26 +9,27 @@ public class Main
 	public static void main(String args[])
 	{
 		String fileName = "file.txt";
-		String fileContent = "";
+		String fileContents = "";
 		Path myPath = Paths.get(fileName);
 		
 		try 
 		{
-			fileContent = new String(Files.readAllBytes (myPath));
+			fileContents = new String(Files.readAllBytes (myPath));
 		} 
-		
 		catch (IOException e) 
 		{
 			e.printStackTrace();
 		}
 		
-		Lexer lex = new Lexer(fileContent);
+		// Passes file content to Lexer
+		Lexer lex = new Lexer(fileContents);
+		// Returns LinkedList of tokens
 		LinkedList<Token> tokens = lex.Lex();
 		
 		for (int i = 0; i < tokens.size(); i++)
 		{
-			tokens.get(i).ToString();
-			System.out.print(" ");
+			System.out.print(tokens.get(i).ToStringPosition() + " ");
 		}
 	}
 }
+	

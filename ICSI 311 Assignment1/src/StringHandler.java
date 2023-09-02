@@ -13,7 +13,7 @@ public class StringHandler
 		index = 0;
 	}
 
-	// looks “i” characters ahead and returns that character; doesn’t move the index.
+	// looks “i” characters ahead and returns that character but doesn’t move the index.
 	public char Peek(int i) 
 	{
 		if (index + i <= fileContents.length() - 1)
