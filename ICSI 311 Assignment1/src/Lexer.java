@@ -53,7 +53,7 @@ public class Lexer
 				// Ignores carriage return like a whitespace.
 				else if(sh.Peek(0) == '\r')
 				{
-					// Makes sure there is another character after carriage return otherwise exits loop
+					// Checks if return carriage is the last character in the string.
 					if(sh.Remainder().length() - 1 > 0)
 					{
 						sh.Swallow(1);
