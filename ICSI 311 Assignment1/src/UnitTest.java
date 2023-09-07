@@ -106,11 +106,11 @@ public class UnitTest
 			values += tokens.get(i).ToStringPosition() + " ";
 		}
 		
-		Assert.assertEquals("Line Number: 0 Character Position: 0 "
-				+ "Line Number: 0 Character Position: 2 "
-				+ "Line Number: 0 Character Position: 7 "
-				+ "Line Number: 0 Character Position: 11 "
-				+ "Line Number: 0 Character Position: 13 ", values);
+		Assert.assertEquals("Line Number: 1 Character Position: 1 "
+				+ "Line Number: 1 Character Position: 3 "
+				+ "Line Number: 1 Character Position: 8 "
+				+ "Line Number: 1 Character Position: 12 "
+				+ "Line Number: 1 Character Position: 14 ", values);
 	}
 	
 	@Test
@@ -125,17 +125,17 @@ public class UnitTest
 			values += tokens.get(i).ToStringPosition() + " ";
 		}
 		
-		Assert.assertEquals("Line Number: 0 Character Position: 0 "
-				+ "Line Number: 0 Character Position: 5 "
-				+ "Line Number: 0 Character Position: 7 "
-				+ "Line Number: 1 Character Position: 0 "
-				+ "Line Number: 1 Character Position: 5 "
-				+ "Line Number: 1 Character Position: 9 "
-				+ "Line Number: 2 Character Position: 0 "
-				+ "Line Number: 2 Character Position: 4 "
+		Assert.assertEquals("Line Number: 1 Character Position: 1 "
+				+ "Line Number: 1 Character Position: 6 "
+				+ "Line Number: 1 Character Position: 8 "
+				+ "Line Number: 2 Character Position: 1 "
 				+ "Line Number: 2 Character Position: 6 "
-				+ "Line Number: 2 Character Position: 11 "
-				+ "Line Number: 2 Character Position: 13 ", values);
+				+ "Line Number: 2 Character Position: 10 "
+				+ "Line Number: 3 Character Position: 1 "
+				+ "Line Number: 3 Character Position: 5 "
+				+ "Line Number: 3 Character Position: 7 "
+				+ "Line Number: 3 Character Position: 12 "
+				+ "Line Number: 3 Character Position: 14 ", values);
 	}
 	
 	@Test(expected = IllegalArgumentException.class)

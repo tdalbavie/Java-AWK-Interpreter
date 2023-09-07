@@ -1,9 +1,10 @@
+import java.util.InputMismatchException;
 
 public class StringHandler 
 {
-	// Contains the awk file as a String
+	// Contains the awk file as a String.
 	private String fileContents;
-	// Keeps track of where it is in the string
+	// Keeps track of where it is in the string.
 	private int index;
 	
 	// Constructor initializes fileContents and index.
@@ -13,7 +14,7 @@ public class StringHandler
 		index = 0;
 	}
 
-	// looks “i” characters ahead and returns that character but doesn’t move the index.
+	// Looks “i” characters ahead and returns that character but doesn’t move the index.
 	public char Peek(int i) 
 	{
 		if (index + i <= fileContents.length() - 1)
@@ -22,13 +23,13 @@ public class StringHandler
 			return '\0';
 	}
 	
-	// returns a string of the next “i” characters but doesn’t move the index.
+	// Returns a string of the next “i” characters but doesn’t move the index.
 	public String PeekString(int i)
 	{
 		return fileContents.substring(index, index + i);
 	}
 	
-	// returns the next character and moves the index.
+	// Returns the next character and moves the index.
 	public char GetChar()
 	{
 		char nextChar = fileContents.charAt(index);
@@ -36,13 +37,13 @@ public class StringHandler
 		return nextChar;
 	}
 	
-	// moves the index ahead “i” positions.
+	// Moves the index ahead “i” positions.
 	public void Swallow(int i)
 	{
 		index += i;
 	}
 	
-	// returns true if we are at the end of the document.
+	// Returns true if we are at the end of the document.
 	public boolean IsDone()
 	{
 		if (index == (fileContents.length()))
@@ -51,9 +52,35 @@ public class StringHandler
 			return false;
 	}
 	
-	// returns the rest of the document as a string.
-public String Remainder()
+	// Returns the rest of the document as a string.
+	public String Remainder()
 	{
 		return fileContents.substring(index);
+	}
+	
+	// Processes string literal and returns it.
+	public String HandleStringLiteral()
+	{
+		String literal = "";
+		
+		while (Peek(0) != '"')
+		{
+			// Checks for inside quotes so the loop does not end prematurely.
+			if (Peek(0) == '\\')
+			{
+				literal += GetChar();
+				if (Peek(0) == '"')
+					literal += GetChar();
+			}
+			// Throws an exception if it reads the rest of the string with no closing ".
+			if (IsDone())
+			{
+				throw new InputMismatchException("Missing closing quote");
+			}
+			else
+				literal += GetChar();
+		}
+		
+		return literal;
 	}
 }

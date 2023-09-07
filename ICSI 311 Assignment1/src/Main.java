@@ -26,9 +26,10 @@ public class Main
 		// Returns LinkedList of tokens
 		LinkedList<Token> tokens = lex.Lex();
 		
+		// Prints each token
 		for (int i = 0; i < tokens.size(); i++)
 		{
-			System.out.print(tokens.get(i).ToStringPosition() + " ");
+			System.out.print(tokens.get(i).ToStringValue() + " ");
 		}
 	}
 }
