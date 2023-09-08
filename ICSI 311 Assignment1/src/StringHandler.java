@@ -26,7 +26,10 @@ public class StringHandler
 	// Returns a string of the next “i” characters but doesn’t move the index.
 	public String PeekString(int i)
 	{
-		return fileContents.substring(index, index + i);
+		if (index + i <= fileContents.length())
+			return fileContents.substring(index, index + i);
+		else
+			return "\0";
 	}
 	
 	// Returns the next character and moves the index.
@@ -62,13 +65,15 @@ public class StringHandler
 	public String HandleStringLiteral()
 	{
 		String literal = "";
+		// Gets rid of first ".
+		Swallow(1);
 		
 		while (Peek(0) != '"')
 		{
 			// Checks for inside quotes so the loop does not end prematurely.
 			if (Peek(0) == '\\')
 			{
-				literal += GetChar();
+				Swallow(1);
 				if (Peek(0) == '"')
 					literal += GetChar();
 			}
@@ -80,6 +85,32 @@ public class StringHandler
 			else
 				literal += GetChar();
 		}
+		
+		// Gets rid of last".
+		Swallow(1);
+		
+		return literal;
+	}
+	
+	public String HandlePattern()
+	{
+		String literal = "";
+		// Gets rid of first `.
+		Swallow(1);
+		
+		while (Peek(0) != '`')
+		{
+			// Throws an exception if it reads the rest of the string with no closing `.
+			if (IsDone())
+			{
+				throw new InputMismatchException("Missing closing backtick");
+			}
+			else
+				literal += GetChar();
+		}
+		
+		// Gets rid of last".
+		Swallow(1);
 		
 		return literal;
 	}

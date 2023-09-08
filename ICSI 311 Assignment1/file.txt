@@ -1,1 +1,19 @@
-for while hello do
+BEGIN {FS=","}
+{
+	for (i=1;i<=NF;i++)
+	{	
+		if (NR == 1)
+		{
+			sum+=$i
+			line1+=sum
+			sum=0
+		}
+		else
+		{	
+			sum+=$i
+			line2+=sum
+			sum=0
+		}
+	}	
+}
+END {printf("Line 1: %s\nLine 2: %s\nGrand total: %s\n", line1, line2, line1 + line2)}

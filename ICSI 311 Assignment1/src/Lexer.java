@@ -8,6 +8,9 @@ public class Lexer
 	private int lineNumber;
 	private int charPosition;
 	private HashMap<String, Token.TokenType> types;
+	private HashMap<String, Token.TokenType> singleSymbolTypes;
+	private HashMap<String, Token.TokenType> doubleSymbolTypes;
+	
 	
 	public Lexer(String fileContents)
 	{
@@ -45,8 +48,7 @@ public class Lexer
 				// Creates a separator token and moves to the next line.
 				else if (sh.Peek(0) == '\n')
 				{
-					Token linefeed = new Token(Token.TokenType.SEPERATOR, lineNumber, charPosition);
-					tokens.add(linefeed);
+					tokens.add(new Token(Token.TokenType.SEPARATOR, lineNumber, charPosition));
 					sh.Swallow(1);
 					lineNumber++;
 					charPosition = 1;
@@ -69,22 +71,19 @@ public class Lexer
 				// Identifies the start of a word then loops until the full word is found and creates a token.
 				else if (Character.isAlphabetic(sh.Peek(0)) || sh.Peek(0) == '_')
 				{
-					Token word = ProcessWord();
-					tokens.add(word);
+					tokens.add(ProcessWord());
 				}
 				
 				// Identifies the start of a number and loops until the full number is found.
 				else if (Character.isDigit(sh.Peek(0)))
 				{
-					Token number = ProcessNumber();
-					tokens.add(number);
+					tokens.add(ProcessNumber());
 				}
 				
 				// Identifies the start of a decimal number until the full number is found.
 				else if (sh.Peek(0) == '.')
 				{
-					Token decimal = ProcessNumber();
-					tokens.add(decimal);
+					tokens.add(ProcessNumber());
 				}
 				
 				else if (sh.Peek(0) == '#')
@@ -104,9 +103,8 @@ public class Lexer
 					{
 						while (sh.Peek(0) != '\n')
 							sh.GetChar();
-						
-						Token linefeed = new Token(Token.TokenType.SEPERATOR, lineNumber, charPosition);
-						tokens.add(linefeed);
+
+						tokens.add(new Token(Token.TokenType.SEPARATOR, lineNumber, charPosition));
 						sh.Swallow(1);
 						lineNumber++;
 						charPosition = 1;
@@ -118,17 +116,34 @@ public class Lexer
 					String literal = sh.HandleStringLiteral();
 					// Sets character positions string length + 2 to make up for the two " positions.
 					charPosition += literal.length() + 2;
-					Token stringLiteral = new Token(literal, Token.TokenType.STRINGLITERAL, lineNumber, charPosition);
-					tokens.add(stringLiteral);
+					tokens.add(new Token(literal, Token.TokenType.STRINGLITERAL, lineNumber, charPosition));
+				}
+				
+				else if (sh.Peek(0) == '`')
+				{
+					String pattern = sh.HandlePattern();
+					// Does the same as StringLiteral
+					charPosition += pattern.length() + 2;
+					tokens.add(new Token(pattern, Token.TokenType.PATTERN, lineNumber, charPosition));
+				}
+				
+				// Checks if character is in symbol library
+				else if (singleSymbolTypes.containsKey(sh.PeekString(1)))
+				{
+					tokens.add(ProcessSymbol());
 				}
 				
 				// Returns an error for unknown character and stops program.
 				else
 				{
-					throw new InputMismatchException("Character not valid");
+					throw new InputMismatchException("Character not valid: " + sh.Peek(0));
 				}
 			}
 		}
+		
+		// Adds a separator token to the end of the token list and creates an extra character at the end of the string.
+		charPosition++;
+		tokens.add(new Token(Token.TokenType.SEPARATOR, lineNumber, charPosition));
 		
 		return tokens;
 	}
@@ -147,10 +162,6 @@ public class Lexer
 			word += sh.GetChar();
 			charPosition++;
 		}
-		
-		// Throws an exception if there is an invalid character still attached to the word.
-		if (Character.isWhitespace(sh.Peek(0)) == false && sh.Peek(0) != '\r' && sh.Peek(0) != '\n' && sh.Peek(0) != '\0')
-			throw new IllegalArgumentException("Words contain invalid character(s)");
 		
 		if (types.containsKey(word))
 			return new Token(types.get(word), lineNumber, charPositionCount);
@@ -187,12 +198,31 @@ public class Lexer
 				charPosition++;
 			}
 		}
-		
-		// Throws an exception if there is an invalid character still attached to the number.
-		if (Character.isWhitespace(sh.Peek(0)) == false && sh.Peek(0) != '\r' && sh.Peek(0) != '\n' && sh.Peek(0) != '\0')
-			throw new IllegalArgumentException("Numbers contains invalid character(s)");
 			
 		return new Token(number, Token.TokenType.NUMBER, lineNumber, charPositionCount);
+	}
+	
+	public Token ProcessSymbol()
+	{
+		String symbol = "";
+		// Checks if symbol is double or single
+		if (doubleSymbolTypes.containsKey(sh.PeekString(2)))
+		{
+			int charPositionCount = charPosition;
+			symbol += sh.PeekString(2);
+			sh.Swallow(2);
+			charPosition += 2;
+			return new Token(doubleSymbolTypes.get(symbol), lineNumber, charPositionCount);
+		}
+		else if (singleSymbolTypes.containsKey(sh.PeekString(1)))
+		{
+			int charPositionCount = charPosition;
+			symbol += sh.GetChar();
+			charPosition++;
+			return new Token(singleSymbolTypes.get(symbol), lineNumber, charPositionCount);
+		}
+		else
+			return null;
 	}
 	
 	// Called by constructor to populate the HashMap
@@ -218,5 +248,50 @@ public class Lexer
 		types.put("exit", Token.TokenType.EXIT);
 		types.put("nextfile", Token.TokenType.NEXTFILE);
 		types.put("function", Token.TokenType.FUNCTION);
+		types.put("'", Token.TokenType.PATTERN);
+		
+		singleSymbolTypes = new HashMap<String, Token.TokenType>();
+		singleSymbolTypes.put("{", Token.TokenType.OPENCURLBRACK);
+		singleSymbolTypes.put("}", Token.TokenType.CLOSECURLBRACK);
+		singleSymbolTypes.put("[", Token.TokenType.OPENBRACK);
+		singleSymbolTypes.put("]", Token.TokenType.CLOSEBRACK);
+		singleSymbolTypes.put("(", Token.TokenType.OPENPAREN);
+		singleSymbolTypes.put(")", Token.TokenType.CLOSEPAREN);
+		singleSymbolTypes.put("$", Token.TokenType.DOLLAR);
+		singleSymbolTypes.put("~", Token.TokenType.MATCH);
+		singleSymbolTypes.put("=", Token.TokenType.ASSIGN);
+		singleSymbolTypes.put("<", Token.TokenType.LESSTHAN);
+		singleSymbolTypes.put(">", Token.TokenType.GREATERTHAN);
+		singleSymbolTypes.put("!", Token.TokenType.NOT);
+		singleSymbolTypes.put("+", Token.TokenType.PLUS);
+		singleSymbolTypes.put("^", Token.TokenType.EXPONENT);
+		singleSymbolTypes.put("-", Token.TokenType.MINUS);
+		singleSymbolTypes.put("?", Token.TokenType.QUESTIONMARK);
+		singleSymbolTypes.put(":", Token.TokenType.COLON);
+		singleSymbolTypes.put("*", Token.TokenType.MULTIPLY);
+		singleSymbolTypes.put("/", Token.TokenType.DIVIDE);
+		singleSymbolTypes.put("%", Token.TokenType.MODULO);
+		singleSymbolTypes.put(";", Token.TokenType.SEPARATOR);
+		singleSymbolTypes.put("\n", Token.TokenType.SEPARATOR);
+		singleSymbolTypes.put("|", Token.TokenType.BAR);
+		singleSymbolTypes.put(",", Token.TokenType.COMMA);
+		
+		doubleSymbolTypes = new HashMap<String, Token.TokenType>();
+		doubleSymbolTypes.put(">=", Token.TokenType.GREATEROREQUAL);
+		doubleSymbolTypes.put("++", Token.TokenType.INCREMENT);
+		doubleSymbolTypes.put("--", Token.TokenType.DECREMENT);
+		doubleSymbolTypes.put("<=", Token.TokenType.LESSOREQUAL);
+		doubleSymbolTypes.put("==", Token.TokenType.EQUALS);
+		doubleSymbolTypes.put("!=", Token.TokenType.NOTEQUALS);
+		doubleSymbolTypes.put("^=", Token.TokenType.EXPONENTEQUALS);
+		doubleSymbolTypes.put("%=", Token.TokenType.MODEQUALS);
+		doubleSymbolTypes.put("*=", Token.TokenType.MULTIPLYEQUALS);
+		doubleSymbolTypes.put("/=", Token.TokenType.DIVIDEEQUALS);
+		doubleSymbolTypes.put("+=", Token.TokenType.PLUSEQUALS);
+		doubleSymbolTypes.put("-=", Token.TokenType.MINUSEQUALS);
+		doubleSymbolTypes.put("!~", Token.TokenType.NOTMATCH);
+		doubleSymbolTypes.put("&&", Token.TokenType.AND);
+		doubleSymbolTypes.put(">>", Token.TokenType.APPEND);
+		doubleSymbolTypes.put("||", Token.TokenType.OR);
 	}
 }
