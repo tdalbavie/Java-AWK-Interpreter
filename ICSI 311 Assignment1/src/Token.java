@@ -18,24 +18,40 @@ public class Token
 	private int lineNumber;
 	private int charPosition;
 	
-	// Takes in the character that indicates which token type it is but does not store it.
+	// Takes in token type and position of token.
 	public Token(TokenType type, int lineNumber, int charPosition)
 	{
-		// Sets value to null for ease of ToString output.
-		value = null;
 		this.lineNumber = lineNumber;
 		this.charPosition = charPosition;
 		this.type = type; 
 		
 	}
 	
-	// Takes in a value to store and identifies if it is a word or number.
+	// Takes in first constructor but sets value for cases like abstract words or numbers.
 	public Token(String value, TokenType type, int lineNumber, int charPosition)
 	{
+		this(type, lineNumber, charPosition);
 		this.value = value;
-		this.lineNumber = lineNumber;
-		this.charPosition = charPosition;
-		this.type = type;
+	}
+	
+	public TokenType getType()
+	{
+		return type;
+	}
+	
+	public String getValue()
+	{
+		return value;
+	}
+	
+	public int getLineNumber()
+	{
+		return lineNumber;
+	}
+	
+	public int getCharPosition()
+	{
+		return charPosition;
 	}
 	
 	public String ToStringValue()

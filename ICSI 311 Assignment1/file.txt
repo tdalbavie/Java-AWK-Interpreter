@@ -1,19 +1,9 @@
-BEGIN {FS=","}
-{
-	for (i=1;i<=NF;i++)
-	{	
-		if (NR == 1)
-		{
-			sum+=$i
-			line1+=sum
-			sum=0
-		}
-		else
-		{	
-			sum+=$i
-			line2+=sum
-			sum=0
-		}
-	}	
+BEGIN {
+    message1 = "This is a message outside of a pattern."
+    message2 = "Another message."
 }
-END {printf("Line 1: %s\nLine 2: %s\nGrand total: %s\n", line1, line2, line1 + line2)}
+
+{
+    if ($1 == "apple") print message1
+    if ($0 ~ "This is a \"quoted\" string.") print message2
+}

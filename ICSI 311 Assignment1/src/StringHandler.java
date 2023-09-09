@@ -78,7 +78,7 @@ public class StringHandler
 					literal += GetChar();
 			}
 			// Throws an exception if it reads the rest of the string with no closing ".
-			if (IsDone())
+			else if (IsDone())
 			{
 				throw new InputMismatchException("Missing closing quote");
 			}

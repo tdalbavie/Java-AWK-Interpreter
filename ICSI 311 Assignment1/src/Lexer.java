@@ -111,24 +111,33 @@ public class Lexer
 					}
 				}
 				
+				// Checks for the start of a string.
 				else if (sh.Peek(0) == '"')
 				{
+					int charPositionCount = charPosition;
 					String literal = sh.HandleStringLiteral();
 					// Sets character positions string length + 2 to make up for the two " positions.
 					charPosition += literal.length() + 2;
-					tokens.add(new Token(literal, Token.TokenType.STRINGLITERAL, lineNumber, charPosition));
+					tokens.add(new Token(literal, Token.TokenType.STRINGLITERAL, lineNumber, charPositionCount));
 				}
 				
+				// Checks for the start of a pattern.
 				else if (sh.Peek(0) == '`')
 				{
+					int charPositionCount = charPosition;
 					String pattern = sh.HandlePattern();
 					// Does the same as StringLiteral
 					charPosition += pattern.length() + 2;
-					tokens.add(new Token(pattern, Token.TokenType.PATTERN, lineNumber, charPosition));
+					tokens.add(new Token(pattern, Token.TokenType.PATTERN, lineNumber, charPositionCount));
 				}
 				
 				// Checks if character is in symbol library
 				else if (singleSymbolTypes.containsKey(sh.PeekString(1)))
+				{
+					tokens.add(ProcessSymbol());
+				}
+				
+				else if (doubleSymbolTypes.containsKey(sh.PeekString(2)))
 				{
 					tokens.add(ProcessSymbol());
 				}
@@ -141,15 +150,14 @@ public class Lexer
 			}
 		}
 		
-		// Adds a separator token to the end of the token list and creates an extra character at the end of the string.
-		charPosition++;
+		// Adds a separator token to the end of the token list.
 		tokens.add(new Token(Token.TokenType.SEPARATOR, lineNumber, charPosition));
 		
 		return tokens;
 	}
 	
 	// Peeks at following characters until full word is found.
-	public Token ProcessWord()
+	private Token ProcessWord()
 	{
 		// Holds the word to be added to the token
 		String word = "";
@@ -170,7 +178,7 @@ public class Lexer
 	}
 	
 	// Peeks at following characters until full number is found.
-	public Token ProcessNumber()
+	private Token ProcessNumber()
 	{
 		// Holds the number to be added to the token
 		String number = "";
@@ -202,7 +210,7 @@ public class Lexer
 		return new Token(number, Token.TokenType.NUMBER, lineNumber, charPositionCount);
 	}
 	
-	public Token ProcessSymbol()
+	private Token ProcessSymbol()
 	{
 		String symbol = "";
 		// Checks if symbol is double or single
