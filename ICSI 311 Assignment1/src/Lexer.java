@@ -234,7 +234,7 @@ public class Lexer
 	}
 	
 	// Called by constructor to populate the HashMap
-	public void HashMapPopulator()
+	private void HashMapPopulator()
 	{
 		types = new HashMap<String, Token.TokenType>();
 		types.put("while", Token.TokenType.WHILE);
