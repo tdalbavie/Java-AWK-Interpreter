@@ -24,7 +24,6 @@ public class Token
 		this.lineNumber = lineNumber;
 		this.charPosition = charPosition;
 		this.type = type; 
-		
 	}
 	
 	// Takes in first constructor but sets value for cases like abstract words or numbers.
