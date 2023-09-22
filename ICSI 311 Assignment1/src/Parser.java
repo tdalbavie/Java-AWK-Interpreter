@@ -69,12 +69,12 @@ public class Parser
 			throw new IllegalArgumentException("No function call parameter was found.");
 		
 		// Is placed between every parameter name and comma to remove any possible new lines a user may have added.
-		AcceptSeparators();
+		AcceptSeperators();
 		
 		// Takes in the function parameter name (if there is one).
 		optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
 		
-		AcceptSeparators();
+		AcceptSeperators();
 		
 		// Checks if there is a function parameter name and processes however many parameter names that were defined.
 		if (optionalToken.isPresent() == true)
@@ -84,14 +84,14 @@ public class Parser
 			// Checks for parameter separator and if it exists will enter while loop until all parameter names are found.
 			optionalToken = th.MatchAndRemove(Token.TokenType.COMMA);
 			
-			AcceptSeparators();
+			AcceptSeperators();
 			
 			// Loops as long as there are more parameters to add to the list.
 			while (optionalToken.isPresent() == true)
 			{
 				optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
 				
-				AcceptSeparators();
+				AcceptSeperators();
 				
 				// Makes sure that there is another parameter.
 				if (optionalToken.isPresent() == true)
@@ -104,8 +104,18 @@ public class Parser
 					throw new IllegalArgumentException("No parameter was found");
 					
 				
-				AcceptSeparators();
+				AcceptSeperators();
 			}
+			
+			// Creates the BlockNode containing the statements.
+			BlockNode block = ParseBlock();
+			LinkedList<StatementNode> statements = block.StatementsAccessor();
+			
+			// Initializes the FunctionDefinitionNode with all collected data.
+			FDN = new FunctionDefinitionNode(statements, ParameterNames, FunctionName);
+			
+			// Adds the FunctionDefinitionNode to the linked list in ProgramNode.
+			node.FunctionDefinitionNodeAccessor().add(FDN);
 		}
 		
 		// Ensures function parameter list was closed.
@@ -172,26 +182,56 @@ public class Parser
 	}
 	
 	// Takes all separators in the list and moves past them
-	private boolean AcceptSeparators()
+	private boolean AcceptSeperators()
 	{
-		// Saves the result from MatchAndRemove
-		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
 		// Flags if a separator was found when MatchAndRemove was called.
 		boolean hasSeparator = false;
 		
-		// If optionalToken has a separator token it sets flag as true.
-		if (optionalToken.isPresent() == true)
-			hasSeparator = true;
-		
-		// Continues to remove separators until it returns an empty optional.
-		while (optionalToken.isPresent() == true)
+		// Only uses AcceptSeperators if there are more tokens
+		if (th.MoreTokens() == true)
 		{
-			optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
+			// Saves the result from MatchAndRemove
+			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
+			
+			// If optionalToken has a separator token it sets flag as true.
+			if (optionalToken.isPresent() == true)
+				hasSeparator = true;
+			
+			// Continues to remove separators until it returns an empty optional.
+			while (optionalToken.isPresent() == true)
+			{
+				optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
+			}
 		}
 		
 		// Returns the flag which should return true when at least one separator is removed.
 		return hasSeparator;
 	}
 	
-	
+	// Copy of AcceptSeperators strictly for use in JUnit tests, will be removed after.
+	public boolean AcceptSeperators(TokenHandler th)
+	{
+		// Flags if a separator was found when MatchAndRemove was called.
+		boolean hasSeparator = false;
+		
+		// Only uses AcceptSeperators if there are more tokens
+		if (th.MoreTokens() == true)
+		{
+			// Saves the result from MatchAndRemove
+			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
+			
+			// If optionalToken has a separator token it sets flag as true.
+			if (optionalToken.isPresent() == true)
+				hasSeparator = true;
+			
+			// Continues to remove separators until it returns an empty optional.
+			while (optionalToken.isPresent() == true)
+			{
+				optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
+			}
+		}
+		
+		// Returns the flag which should return true when at least one separator is removed.
+		return hasSeparator;
+	}
 }
