@@ -22,8 +22,12 @@ public class BlockNode extends Node
 		return Condition;
 	}
 	
+	// No good way to print Blocks until Statements have been implemented.
 	public String toString() 
 	{
-		return null;
+		if (Condition.isPresent())
+			return "Condition is present";
+		else
+			return "Condition is empty";
 	}
 }

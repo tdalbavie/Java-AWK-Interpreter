@@ -31,6 +31,12 @@ public class Main
 		{
 			System.out.print(tokens.get(i).ToStringValue() + " ");
 		}
+		System.out.println();
+		
+		Parser pars = new Parser(tokens);
+	    ProgramNode node = pars.Parse();
+	    // Prints out ProgramNode.
+	    System.out.print(node.toString());
 	}
 }
 	

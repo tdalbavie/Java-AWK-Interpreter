@@ -28,8 +28,14 @@ public class FunctionDefinitionNode extends Node
 		return Statements;
 	}
 	
+	// No way to output Statements since it has not been implemented yet.
 	public String toString() 
 	{
-		return null;
+		String contents = "Function name: " + FunctionName + "\n";
+		if (ParameterNames.isEmpty() == false)
+		{
+			contents += "Parameter name(s): " + ParameterNames.toString();
+		}
+		return contents;
 	}
 }

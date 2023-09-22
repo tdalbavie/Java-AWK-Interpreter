@@ -39,7 +39,44 @@ public class ProgramNode extends Node
 	// Prints the contents of the class
 	public String toString() 
 	{
-		return null;
+		String contents = "";
+		if(FDN.isEmpty() == false)
+		{
+			contents += "Function Definitions:\n";
+			for(int i = 0; i < FDN.size(); i++)
+			{
+				contents += FDN.get(i).toString() + "\n";
+			}
+		}
+		
+		if(StartBlocks.isEmpty() == false)
+		{
+			contents += "Start Blocks:\n";
+			for(int i = 0; i < StartBlocks.size(); i++)
+			{
+				contents += StartBlocks.get(i).toString() + "\n";
+			}
+		}
+		
+		if(EndBlocks.isEmpty() == false)
+		{
+			contents += "End Blocks:\n";
+			for(int i = 0; i < EndBlocks.size(); i++)
+			{
+				contents += EndBlocks.get(i).toString() + "\n";
+			}
+		}
+		
+		if(Blocks.isEmpty() == false)
+		{
+			contents += "Blocks:\n";
+			for(int i = 0; i < Blocks.size(); i++)
+			{
+				contents += Blocks.get(i).toString() + "\n";
+			}
+		}
+		
+		return contents;
 	}
 	
 }

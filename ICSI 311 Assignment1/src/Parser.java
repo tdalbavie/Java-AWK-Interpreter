@@ -11,12 +11,13 @@ public class Parser
 		th = new TokenHandler(tokens);
 	}
 	
-	// S
+	// Parses all the tokens and returns an AST
 	public ProgramNode Parse()
 	{
 		// Initializes the AST; 
 		ProgramNode node = new ProgramNode();
 		
+		// Loops as long as there are tokens to parse
 		while (th.MoreTokens() == true)
 		{
 			// Continues while loop if ParseFunction was successful
