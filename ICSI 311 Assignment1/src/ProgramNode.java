@@ -7,12 +7,12 @@ public class ProgramNode extends Node
 	private LinkedList<BlockNode> EndBlocks;
 	private LinkedList<BlockNode> Blocks;
 	
-	public ProgramNode(LinkedList<FunctionDefinitionNode> FDN, LinkedList<BlockNode> StartBlocks, LinkedList<BlockNode> EndBlocks, LinkedList<BlockNode> Blocks)
+	public ProgramNode()
 	{
-		this.FDN = new LinkedList<FunctionDefinitionNode>(FDN);
-		this.StartBlocks = new LinkedList<BlockNode>(StartBlocks);
-		this.EndBlocks = new LinkedList<BlockNode>(EndBlocks);
-		this.Blocks = new LinkedList<BlockNode>(Blocks);
+		this.FDN = new LinkedList<FunctionDefinitionNode>();
+		this.StartBlocks = new LinkedList<BlockNode>();
+		this.EndBlocks = new LinkedList<BlockNode>();
+		this.Blocks = new LinkedList<BlockNode>();
 	}
 	
 	// Allows access to LinkedLists to be able to manipulate them through LinkedList methods

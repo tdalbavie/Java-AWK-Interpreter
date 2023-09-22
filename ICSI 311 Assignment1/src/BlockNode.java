@@ -6,9 +6,9 @@ public class BlockNode extends Node
 	private LinkedList<StatementNode> Statements;
 	private Optional<Node> Condition;
 	
-	public BlockNode(LinkedList<StatementNode> Statements, Optional<Node> Condition)
+	public BlockNode(Optional<Node> Condition)
 	{
-		this.Statements = new LinkedList<StatementNode>(Statements);
+		Statements = new LinkedList<StatementNode>();
 		this.Condition = Condition;
 	}
 	

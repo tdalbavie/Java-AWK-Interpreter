@@ -31,11 +31,14 @@ public class TokenHandler
 	
 	public Optional<Token> MatchAndRemove(Token.TokenType t)
 	{
-		if (tokens.getFirst().getType() == t)
+		if(MoreTokens())
 		{
-			Token tempToken = tokens.getFirst();
-			tokens.removeFirst();
-			return Optional.of(tempToken);
+			if (tokens.getFirst().getType() == t)
+			{
+				Token tempToken = tokens.getFirst();
+				tokens.removeFirst();
+				return Optional.of(tempToken);
+			}
 		}
 		
 		return Optional.empty();
