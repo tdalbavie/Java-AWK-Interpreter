@@ -168,8 +168,59 @@ public class Parser
 			return false;
 	}
 	
-	private Optional<Node> ParseOperation()
+	// Set public for testing purposes.
+	public Optional<Node> ParseOperation()
 	{
+		return ParseBottomLevel();
+	}
+	
+	private Optional<Node> ParseBottomLevel()
+	{
+		Optional<Token> optionalToken = Optional.empty();
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.STRINGLITERAL);
+		if (optionalToken.isPresent())
+		{
+			
+		}
+	}
+	
+	private Optional<Node> ParseLValue()
+	{
+		Optional<Token> optionalToken = Optional.empty();
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.DOLLAR);
+		if (optionalToken.isPresent())
+		{
+			OperationNode opNode = new OperationNode(ParseBottomLevel().get(), OperationNode.operations.DOLLAR);
+			return Optional.of(opNode);
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
+		if (optionalToken.isPresent())
+		{
+			// Holds name of variable.
+			String name = optionalToken.get().getValue();
+			
+			optionalToken = th.MatchAndRemove(Token.TokenType.OPENBRACK);
+			if (optionalToken.isPresent())
+			{
+				VariableReferenceNode vrNode = new VariableReferenceNode(name, ParseBottomLevel());
+				
+				optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEBRACK);
+				// Makes sure there is a closing bracket when processing array;
+				if(optionalToken.isEmpty())
+					throw new IllegalArgumentException("No closing bracket was found");
+				
+				return Optional.of(vrNode);
+			}
+			// Runs if the next token is not an open bracket.
+			else
+			{
+				VariableReferenceNode vrNode = new VariableReferenceNode(name);
+				return Optional.of(vrNode);
+			}
+		}
 		return Optional.empty();
 	}
 	
@@ -183,33 +234,6 @@ public class Parser
 	
 	// Takes all separators in the list and moves past them
 	private boolean AcceptSeperators()
-	{
-		// Flags if a separator was found when MatchAndRemove was called.
-		boolean hasSeparator = false;
-		
-		// Only uses AcceptSeperators if there are more tokens
-		if (th.MoreTokens() == true)
-		{
-			// Saves the result from MatchAndRemove
-			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
-			
-			// If optionalToken has a separator token it sets flag as true.
-			if (optionalToken.isPresent() == true)
-				hasSeparator = true;
-			
-			// Continues to remove separators until it returns an empty optional.
-			while (optionalToken.isPresent() == true)
-			{
-				optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);
-			}
-		}
-		
-		// Returns the flag which should return true when at least one separator is removed.
-		return hasSeparator;
-	}
-	
-	// Copy of AcceptSeperators strictly for use in JUnit tests, will be removed after.
-	public boolean AcceptSeperators(TokenHandler th)
 	{
 		// Flags if a separator was found when MatchAndRemove was called.
 		boolean hasSeparator = false;
