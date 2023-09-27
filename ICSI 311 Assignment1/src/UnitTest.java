@@ -8,6 +8,49 @@ import org.junit.Test;
 public class UnitTest 
 {
 	@Test
+	public void OperationsTests()
+	{
+		Lexer lexer1 = new Lexer("++a");
+		LinkedList<Token> tokens1 = lexer1.Lex();
+	    Parser parser1 = new Parser(tokens1);
+	    VariableReferenceNode vrNode = new VariableReferenceNode("a");
+	    OperationNode opNode1 = new OperationNode(vrNode, OperationNode.operations.PREINC);
+	    
+	    Assert.assertTrue(parser1.ParseOperation().get().equals(opNode1));
+	    
+	    
+		Lexer lexer2 = new Lexer("++$b");
+		LinkedList<Token> tokens2 = lexer2.Lex();
+	    Parser parser2 = new Parser(tokens2);
+	    
+	    
+		Lexer lexer3 = new Lexer("(++d)");
+		LinkedList<Token> tokens3 = lexer3.Lex();
+	    Parser parser3 = new Parser(tokens3);
+	    
+	    
+		Lexer lexer4 = new Lexer("-5");
+		LinkedList<Token> tokens4 = lexer4.Lex();
+	    Parser parser4 = new Parser(tokens4);
+	    
+	    
+		Lexer lexer5 = new Lexer("`[abc]`");
+		LinkedList<Token> tokens5 = lexer5.Lex();
+	    Parser parser5 = new Parser(tokens5);
+	    
+	    
+		Lexer lexer6 = new Lexer("e[++b]");
+		LinkedList<Token> tokens6 = lexer6.Lex();
+	    Parser parser6 = new Parser(tokens6);
+	    
+	    
+		Lexer lexer7 = new Lexer("$7");
+		LinkedList<Token> tokens7 = lexer7.Lex();
+	    Parser parser7 = new Parser(tokens7);
+	}
+	
+	// All tests past this point are for Parser 1.
+	@Test
 	public void TokenHandlerPeekTest()
 	{
 		Lexer lex = new Lexer("$0 = tolower($0)");
@@ -43,30 +86,6 @@ public class UnitTest
         Assert.assertEquals(Token.TokenType.SEPARATOR, th.MatchAndRemove(Token.TokenType.SEPARATOR).get().getType());
         
         Assert.assertEquals(false, th.MoreTokens());
-	}
-	
-	@Test
-	public void acceptSeperatorsTest()
-	{
-		Lexer lex = new Lexer("$\n\n\n0 = tolower\n\n\n($\n\n0)");
-		LinkedList<Token> tokens = lex.Lex();
-        TokenHandler th = new TokenHandler(tokens);
-        Parser pars = new Parser(tokens);
-        
-        Assert.assertEquals(false, pars.AcceptSeperators(th));
-        Assert.assertEquals(Token.TokenType.DOLLAR, th.MatchAndRemove(Token.TokenType.DOLLAR).get().getType());
-        Assert.assertEquals(true, pars.AcceptSeperators(th));
-        Assert.assertEquals(Token.TokenType.NUMBER, th.MatchAndRemove(Token.TokenType.NUMBER).get().getType());
-        Assert.assertEquals(Token.TokenType.ASSIGN, th.MatchAndRemove(Token.TokenType.ASSIGN).get().getType());
-        Assert.assertEquals(Token.TokenType.WORD, th.MatchAndRemove(Token.TokenType.WORD).get().getType());
-        Assert.assertEquals(true, pars.AcceptSeperators(th));
-        Assert.assertEquals(Token.TokenType.OPENPAREN, th.MatchAndRemove(Token.TokenType.OPENPAREN).get().getType());
-        Assert.assertEquals(Token.TokenType.DOLLAR, th.MatchAndRemove(Token.TokenType.DOLLAR).get().getType());
-        Assert.assertEquals(true, pars.AcceptSeperators(th));
-        Assert.assertEquals(Token.TokenType.NUMBER, th.MatchAndRemove(Token.TokenType.NUMBER).get().getType());
-        Assert.assertEquals(Token.TokenType.CLOSEPAREN, th.MatchAndRemove(Token.TokenType.CLOSEPAREN).get().getType());
-        Assert.assertEquals(Token.TokenType.SEPARATOR, th.MatchAndRemove(Token.TokenType.SEPARATOR).get().getType());
-        Assert.assertEquals(false, pars.AcceptSeperators(th)); // Should come back false since there are no more tokens.
 	}
 	
 	@Test
