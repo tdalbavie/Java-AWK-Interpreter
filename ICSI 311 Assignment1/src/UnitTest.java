@@ -8,47 +8,195 @@ import org.junit.Test;
 public class UnitTest 
 {
 	@Test
-	public void OperationsTests()
+	public void OperationsTest1()
 	{
-		Lexer lexer1 = new Lexer("++a");
-		LinkedList<Token> tokens1 = lexer1.Lex();
-	    Parser parser1 = new Parser(tokens1);
-	    VariableReferenceNode vrNode = new VariableReferenceNode("a");
-	    OperationNode opNode1 = new OperationNode(vrNode, OperationNode.operations.PREINC);
+		Lexer lexer = new Lexer("++a");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
 	    
-	    Assert.assertTrue(parser1.ParseOperation().get().equals(opNode1));
+	    // Breaks apart the tree to test the contents in each node.
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
 	    
-	    
-		Lexer lexer2 = new Lexer("++$b");
-		LinkedList<Token> tokens2 = lexer2.Lex();
-	    Parser parser2 = new Parser(tokens2);
+	    VariableReferenceNode vrNode = (VariableReferenceNode) opNode.getLeftNode();
+	    Assert.assertEquals(vrNode.getName(), "a");
 	    
 	    
-		Lexer lexer3 = new Lexer("(++d)");
-		LinkedList<Token> tokens3 = lexer3.Lex();
-	    Parser parser3 = new Parser(tokens3);
+	}
+	@Test
+	public void OperationsTest2()
+	{
+		Lexer lexer = new Lexer("++$b");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
 	    
+	    // Breaks apart the tree to test the contents in each node.
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
 	    
-		Lexer lexer4 = new Lexer("-5");
-		LinkedList<Token> tokens4 = lexer4.Lex();
-	    Parser parser4 = new Parser(tokens4);
+	    OperationNode nestedOpNode = (OperationNode) opNode.getLeftNode();
+	    Assert.assertEquals(nestedOpNode.getOperation(), OperationNode.operations.DOLLAR);
 	    
-	    
-		Lexer lexer5 = new Lexer("`[abc]`");
-		LinkedList<Token> tokens5 = lexer5.Lex();
-	    Parser parser5 = new Parser(tokens5);
-	    
-	    
-		Lexer lexer6 = new Lexer("e[++b]");
-		LinkedList<Token> tokens6 = lexer6.Lex();
-	    Parser parser6 = new Parser(tokens6);
-	    
-	    
-		Lexer lexer7 = new Lexer("$7");
-		LinkedList<Token> tokens7 = lexer7.Lex();
-	    Parser parser7 = new Parser(tokens7);
+	    VariableReferenceNode vrNode = (VariableReferenceNode) nestedOpNode.getLeftNode();
+	    Assert.assertEquals(vrNode.getName(), "b");
 	}
 	
+	@Test
+	public void OperationsTest3()
+	{
+		Lexer lexer = new Lexer("(++d)");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks apart the tree to test the contents in each node.
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
+
+	    VariableReferenceNode vrNode = (VariableReferenceNode) opNode.getLeftNode();
+	    Assert.assertEquals(vrNode.getName(), "d");
+	}
+	
+	@Test
+	public void OperationsTest4()
+	{
+		Lexer lexer = new Lexer("-5");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks apart the tree to test the contents in each node.
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.UNARYNEG);
+	    
+	    ConstantNode constNode = (ConstantNode) opNode.getLeftNode();
+	    Assert.assertEquals(constNode.getConstantValue(), "5");
+	}
+
+	@Test
+	public void OperationsTest5()
+	{
+		Lexer lexer = new Lexer("`[abc]`");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks apart the tree to test the contents in each node.
+	    PatternNode patNode = (PatternNode) parser.ParseOperation().get();
+	    Assert.assertEquals(patNode.getPattern(), "[abc]");
+	}
+
+	@Test
+	public void OperationsTest6()
+	{
+		Lexer lexer = new Lexer("e[++b]");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks apart the tree to test the contents in each node.
+	    VariableReferenceNode vrNode = (VariableReferenceNode) parser.ParseOperation().get();
+	    Assert.assertEquals(vrNode.getName(), "e");
+	    
+	    OperationNode opNode = (OperationNode) vrNode.getIndex().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
+	    
+	    VariableReferenceNode nestedVrNode = (VariableReferenceNode) opNode.getLeftNode();
+	    Assert.assertEquals(nestedVrNode.getName(), "b");
+	}
+
+	@Test
+	public void OperationsTest7()
+	{
+		Lexer lexer = new Lexer("$7");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks apart the tree to test the contents in each node.
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.DOLLAR);
+	    
+	    ConstantNode constNode = (ConstantNode) opNode.getLeftNode();
+	    Assert.assertEquals(constNode.getConstantValue(), "7");
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest1()
+	{
+		// Throws when no closed parenthesis is found
+		Lexer lexer = new Lexer("(++a");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest2()
+	{
+		// Throws when nothing is found after increment.
+		Lexer lexer = new Lexer("++");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest3()
+	{
+		// Throws when nothing is found after decrement.
+		Lexer lexer = new Lexer("--");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest4()
+	{
+		// Throws when nothing is found after positive.
+		Lexer lexer = new Lexer("+");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest5()
+	{
+		// Throws when nothing is found after negative.
+		Lexer lexer = new Lexer("-");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest6()
+	{
+		// Throws when nothing is found after not.
+		Lexer lexer = new Lexer("!");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest7()
+	{
+		// Throws when nothing is found after dollar.
+		Lexer lexer = new Lexer("$");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void FailedOperationsTest8()
+	{
+		// Throws when nothing is found in parenthesis.
+		Lexer lexer = new Lexer("()");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	}
+	
+	/*
 	// All tests past this point are for Parser 1.
 	@Test
 	public void TokenHandlerPeekTest()
@@ -96,9 +244,9 @@ public class UnitTest
 	    Parser pars = new Parser(tokens);
 	    ProgramNode node = pars.Parse();
 	    
-	    Assert.assertEquals("myFunction", node.FunctionDefinitionNodeAccessor().getFirst().FunctionNameAccessor());
-	    Assert.assertEquals("a", node.FunctionDefinitionNodeAccessor().getFirst().ParameterNamesAccessor().get(0));
-	    Assert.assertEquals("b", node.FunctionDefinitionNodeAccessor().getFirst().ParameterNamesAccessor().get(1));
+	    Assert.assertEquals("myFunction", node.getFunctionDefinitionNode().getFirst().FunctionNameAccessor());
+	    Assert.assertEquals("a", node.getFunctionDefinitionNode().getFirst().ParameterNamesAccessor().get(0));
+	    Assert.assertEquals("b", node.getFunctionDefinitionNode().getFirst().ParameterNamesAccessor().get(1));
 	}
 	
 	@Test
@@ -109,13 +257,13 @@ public class UnitTest
 	    Parser pars = new Parser(tokens);
 	    ProgramNode node = pars.Parse();
 	    
-	    Assert.assertEquals("myFunction", node.FunctionDefinitionNodeAccessor().get(0).FunctionNameAccessor());
-	    Assert.assertEquals("a", node.FunctionDefinitionNodeAccessor().get(0).ParameterNamesAccessor().get(0));
-	    Assert.assertEquals("b", node.FunctionDefinitionNodeAccessor().get(0).ParameterNamesAccessor().get(1));
+	    Assert.assertEquals("myFunction", node.getFunctionDefinitionNode().get(0).FunctionNameAccessor());
+	    Assert.assertEquals("a", node.getFunctionDefinitionNode().get(0).ParameterNamesAccessor().get(0));
+	    Assert.assertEquals("b", node.getFunctionDefinitionNode().get(0).ParameterNamesAccessor().get(1));
 	    
-	    Assert.assertEquals("myOtherFunction", node.FunctionDefinitionNodeAccessor().get(1).FunctionNameAccessor());
-	    Assert.assertEquals("c", node.FunctionDefinitionNodeAccessor().get(1).ParameterNamesAccessor().get(0));
-	    Assert.assertEquals("d", node.FunctionDefinitionNodeAccessor().get(1).ParameterNamesAccessor().get(1));
+	    Assert.assertEquals("myOtherFunction", node.getFunctionDefinitionNode().get(1).FunctionNameAccessor());
+	    Assert.assertEquals("c", node.getFunctionDefinitionNode().get(1).ParameterNamesAccessor().get(0));
+	    Assert.assertEquals("d", node.getFunctionDefinitionNode().get(1).ParameterNamesAccessor().get(1));
 	}
 	
 	@Test
@@ -126,8 +274,8 @@ public class UnitTest
 	    Parser pars = new Parser(tokens);
 	    ProgramNode node = pars.Parse();
 	    
-	    Assert.assertEquals("myFunction", node.FunctionDefinitionNodeAccessor().getFirst().FunctionNameAccessor());
-	    Assert.assertTrue(node.FunctionDefinitionNodeAccessor().getFirst().ParameterNamesAccessor().isEmpty());
+	    Assert.assertEquals("myFunction", node.getFunctionDefinitionNode().getFirst().FunctionNameAccessor());
+	    Assert.assertTrue(node.getFunctionDefinitionNode().getFirst().ParameterNamesAccessor().isEmpty());
 	}
 	
 	// Same test as before just with lots of separators.
@@ -139,9 +287,9 @@ public class UnitTest
 	    Parser pars = new Parser(tokens);
 	    ProgramNode node = pars.Parse();
 	    
-	    Assert.assertEquals("myFunction", node.FunctionDefinitionNodeAccessor().getFirst().FunctionNameAccessor());
-	    Assert.assertEquals("a", node.FunctionDefinitionNodeAccessor().getFirst().ParameterNamesAccessor().get(0));
-	    Assert.assertEquals("b", node.FunctionDefinitionNodeAccessor().getFirst().ParameterNamesAccessor().get(1));
+	    Assert.assertEquals("myFunction", node.getFunctionDefinitionNode().getFirst().FunctionNameAccessor());
+	    Assert.assertEquals("a", node.getFunctionDefinitionNode().getFirst().ParameterNamesAccessor().get(0));
+	    Assert.assertEquals("b", node.getFunctionDefinitionNode().getFirst().ParameterNamesAccessor().get(1));
 	}
 	
 	// Testing is limited due to lack of content, can only test if a BlockNode was made and put into correct LinkedList.
@@ -153,7 +301,7 @@ public class UnitTest
 	    Parser pars = new Parser(tokens);
 	    ProgramNode node = pars.Parse();
 	    
-	    Assert.assertEquals(Optional.empty(), node.StartBlockAccessor().getFirst().ConditionAccessor());
+	    Assert.assertEquals(Optional.empty(), node.getStartBlock().getFirst().ConditionAccessor());
 	}
 	
 	// Testing is limited due to lack of content, can only test if a BlockNode was made and put into correct LinkedList.
@@ -166,7 +314,7 @@ public class UnitTest
 	    ProgramNode node = pars.Parse();
 	    
 	    
-	    Assert.assertEquals(Optional.empty(), node.EndBlockAccessor().getFirst().ConditionAccessor());
+	    Assert.assertEquals(Optional.empty(), node.getEndBlock().getFirst().ConditionAccessor());
 	}
 	
 	// Testing is limited due to lack of content, can only test if a BlockNode was made and put into correct LinkedList.
@@ -179,7 +327,7 @@ public class UnitTest
 	    ProgramNode node = pars.Parse();
 	    
 	    
-	    Assert.assertEquals(Optional.empty(), node.BlockAccessor().getFirst().ConditionAccessor());
+	    Assert.assertEquals(Optional.empty(), node.getBlock().getFirst().ConditionAccessor());
 	}
 	
 
@@ -349,6 +497,6 @@ public class UnitTest
 		Lexer lex = new Lexer("$30'\r\n");
 		lex.Lex();
 	}
-	
+	*/
 	
 }

@@ -12,4 +12,10 @@ public class PatternNode extends Node
 	{
 		return pattern;
 	}
+	
+	// Does the same as getPattern but implemented for simplicity sake and readability.
+	public String toString()
+	{
+		return pattern;
+	}
 }

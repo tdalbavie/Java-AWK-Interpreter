@@ -3,7 +3,7 @@ import java.util.Optional;
 public class VariableReferenceNode extends Node
 {
 	private String name;
-	private Optional<Node> expression;
+	private Optional<Node> index;
 	
 	
 	public VariableReferenceNode(String name)
@@ -11,10 +11,11 @@ public class VariableReferenceNode extends Node
 		this.name = name;
 	}
 	
-	public VariableReferenceNode(String name, Optional<Node> expression)
+	// For when an expression is present.
+	public VariableReferenceNode(String name, Optional<Node> index)
 	{
 		this(name);
-		this.expression = expression;
+		this.index = index;
 	}
 	
 	public String getName()
@@ -22,8 +23,48 @@ public class VariableReferenceNode extends Node
 		return name;
 	}
 	
-	public Optional<Node> getExpression()
+	public Optional<Node> getIndex()
 	{
-		return expression;
+		return index;
+	}
+	
+	public String toString()
+	{
+		String contents = "Name: " + name + "\n";
+		
+		// If present, prints expression once node type is identified.
+		if (index.isPresent())
+		{
+			if (index.get() instanceof OperationNode)
+			{
+				OperationNode opNode = (OperationNode) index.get();
+				opNode.toString();
+			}
+			
+			else if (index.get() instanceof VariableReferenceNode)
+			{
+				VariableReferenceNode vrNode = (VariableReferenceNode) index.get();
+				vrNode.toString();
+			}
+			
+			else if (index.get() instanceof ConstantNode)
+			{
+				ConstantNode constNode = (ConstantNode) index.get();
+				constNode.toString();
+			}
+			
+			else if (index.get() instanceof PatternNode)
+			{
+				PatternNode patNode = (PatternNode) index.get();
+				patNode.toString();
+			}
+			
+			else
+			{
+				contents += "Unknown type\n";
+			}
+		}
+		
+		return contents;
 	}
 }

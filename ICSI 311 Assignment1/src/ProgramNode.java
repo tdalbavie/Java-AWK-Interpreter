@@ -16,22 +16,22 @@ public class ProgramNode extends Node
 	}
 	
 	// Allows access to LinkedLists to be able to manipulate them through LinkedList methods
-	public LinkedList<FunctionDefinitionNode> FunctionDefinitionNodeAccessor()
+	public LinkedList<FunctionDefinitionNode> getFunctionDefinitionNode()
 	{
 		return FDN;
 	}
 	
-	public LinkedList<BlockNode> StartBlockAccessor()
+	public LinkedList<BlockNode> getStartBlock()
 	{
 		return StartBlocks;
 	}
 	
-	public LinkedList<BlockNode> EndBlockAccessor()
+	public LinkedList<BlockNode> getEndBlock()
 	{
 		return EndBlocks;
 	}
 	
-	public LinkedList<BlockNode> BlockAccessor()
+	public LinkedList<BlockNode> getBlock()
 	{
 		return Blocks;
 	}

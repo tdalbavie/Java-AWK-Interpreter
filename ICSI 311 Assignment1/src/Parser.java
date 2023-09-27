@@ -126,21 +126,23 @@ public class Parser
 		FDN = new FunctionDefinitionNode(statements, ParameterNames, FunctionName);
 		
 		// Adds the FunctionDefinitionNode to the linked list in ProgramNode.
-		node.FunctionDefinitionNodeAccessor().add(FDN);
+		node.getFunctionDefinitionNode().add(FDN);
 		
 		return true;
 	}
 	
 	private boolean ParseAction(ProgramNode node)
 	{
-		// initializes as empty in case action has no BEGIN or END.
+		// Initializes as empty in case action has no BEGIN or END.
 		Optional<Token> optionalToken = Optional.empty();
+		// Ensures ParseOperation returns something.
+		Optional<Node> optionalNode = Optional.empty();
 		optionalToken = th.MatchAndRemove(Token.TokenType.BEGIN);
 		boolean parsed = false;
 		
 		if (optionalToken.isPresent() == true)
 		{
-			node.StartBlockAccessor().add(ParseBlock());
+			node.getStartBlock().add(ParseBlock());
 			parsed = true;
 		}
 	
@@ -149,16 +151,16 @@ public class Parser
 		
 		if (optionalToken.isPresent() == true)
 		{
-			node.EndBlockAccessor().add(ParseBlock());
+			node.getEndBlock().add(ParseBlock());
 			parsed = true;
 		}
 		
 		// If action does not have a BEGIN or END.
 		if (optionalToken.isPresent() == false)
 		{
-			th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop.
-			ParseOperation();
-			node.BlockAccessor().add(ParseBlock());
+			//th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop.
+			optionalNode = ParseOperation();
+			node.getBlock().add(ParseBlock());
 			parsed = true;
 		}
 		
@@ -176,7 +178,8 @@ public class Parser
 	
 	private Optional<Node> ParseBottomLevel()
 	{
-		Optional<Token> optionalToken = Optional.empty();
+		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
+		Optional<Node> optionalNode = Optional.empty(); // Ensures ParseOperation returns something.
 		
 		// Returns an Optional of ConstantNode containing a string literal.
 		optionalToken = th.MatchAndRemove(Token.TokenType.STRINGLITERAL);
@@ -208,7 +211,11 @@ public class Parser
 		{
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
-			Optional<Node> OptionalNode = ParseOperation();
+			
+			optionalNode = ParseOperation();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("No operation found in parenthesis.");
+			
 			// Removes any possible separator after operation is parsed.
 			AcceptSeparators();
 			// Makes sure there is a close parenthesis.
@@ -216,7 +223,7 @@ public class Parser
 			if (optionalToken.isEmpty())
 				throw new IllegalArgumentException("No closing parenthesis was found.");
 			
-			return OptionalNode;
+			return optionalNode;
 		}
 		
 		// Returns an Optional of OperationNode of some operation and NOT.
@@ -226,7 +233,11 @@ public class Parser
 			// Removes any possible separator after NOT.
 			AcceptSeparators();
 			
-			OperationNode opNode = new OperationNode(ParseOperation().get(), OperationNode.operations.NOT);
+			optionalNode = ParseOperation();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("Unable to find operation after not.");
+			
+			OperationNode opNode = new OperationNode(OperationNode.operations.NOT, optionalNode.get());
 			return Optional.of(opNode);
 		}
 		
@@ -237,7 +248,11 @@ public class Parser
 			// Removes any possible separator after MINUS.
 			AcceptSeparators();
 			
-			OperationNode opNode = new OperationNode(ParseOperation().get(), OperationNode.operations.UNARYNEG);
+			optionalNode = ParseOperation();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("Unable to find operation after minus.");
+			
+			OperationNode opNode = new OperationNode(OperationNode.operations.UNARYNEG, optionalNode.get());
 			return Optional.of(opNode);
 		}
 		
@@ -248,7 +263,11 @@ public class Parser
 			// Removes any possible separator after PLUS.
 			AcceptSeparators();
 			
-			OperationNode opNode = new OperationNode(ParseOperation().get(), OperationNode.operations.UNARYPOS);
+			optionalNode = ParseOperation();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("Unable to find operation after plus.");
+			
+			OperationNode opNode = new OperationNode(OperationNode.operations.UNARYPOS, optionalNode.get());
 			return Optional.of(opNode);
 		}
 		
@@ -259,7 +278,11 @@ public class Parser
 			// Removes any possible separator after INCREMENT.
 			AcceptSeparators();
 			
-			OperationNode opNode = new OperationNode(ParseOperation().get(), OperationNode.operations.PREINC);
+			optionalNode = ParseOperation();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("Unable to find operation after increment.");
+			
+			OperationNode opNode = new OperationNode(OperationNode.operations.PREINC, optionalNode.get());
 			return Optional.of(opNode);
 		}
 		
@@ -270,7 +293,11 @@ public class Parser
 			// Removes any possible separator after DECREMENT.
 			AcceptSeparators();
 			
-			OperationNode opNode = new OperationNode(ParseOperation().get(), OperationNode.operations.PREDEC);
+			optionalNode = ParseOperation();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("Unable to find operation after decrement.");
+			
+			OperationNode opNode = new OperationNode(OperationNode.operations.PREDEC, optionalNode.get());
 			return Optional.of(opNode);
 		}
 		
@@ -280,7 +307,8 @@ public class Parser
 	
 	private Optional<Node> ParseLValue()
 	{
-		Optional<Token> optionalToken = Optional.empty();
+		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
+		Optional<Node> optionalNode = Optional.empty(); // Ensures ParseOperation/ParseBottomLevel returns something.
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.DOLLAR);
 		if (optionalToken.isPresent())
@@ -288,11 +316,17 @@ public class Parser
 			// Removes any possible separator after dollar sign.
 			AcceptSeparators();
 			
-			OperationNode opNode = new OperationNode(ParseBottomLevel().get(), OperationNode.operations.DOLLAR);
+			optionalNode = ParseBottomLevel();
+			if (optionalNode.isEmpty())
+				throw new IllegalArgumentException("Unable to find operation after dollar.");
+			
+			OperationNode opNode = new OperationNode(OperationNode.operations.DOLLAR, optionalNode.get());
 			return Optional.of(opNode);
 		}
 		
+		// Checks for variable name.
 		optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
+		// Will either return VariableReferenceNode with variable name and expression of present.
 		if (optionalToken.isPresent())
 		{
 			// Removes any possible separator after variable name.
@@ -305,6 +339,7 @@ public class Parser
 			{
 				// Removes any possible separator after open bracket.
 				AcceptSeparators();
+				
 				VariableReferenceNode vrNode = new VariableReferenceNode(name, ParseBottomLevel());
 				
 				optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEBRACK);
@@ -316,13 +351,14 @@ public class Parser
 				
 				return Optional.of(vrNode);
 			}
-			// Runs if the next token is not an open bracket.
+			// Runs if the next token is not an open bracket (array).
 			else
 			{
 				VariableReferenceNode vrNode = new VariableReferenceNode(name);
 				return Optional.of(vrNode);
 			}
 		}
+		// Returns an empty optional if nothing was found to throw an exception.
 		return Optional.empty();
 	}
 	
