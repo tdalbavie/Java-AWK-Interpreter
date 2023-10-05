@@ -5,7 +5,7 @@ public class OperationNode extends Node
 	public enum operations {EQ, NE, LT, LE, GT, GE, AND, OR, NOT, 
 		MATCH, NOTMATCH, DOLLAR, PREINC, POSTINC, PREDEC, POSTDEC, 
 		UNARYPOS, UNARYNEG, IN, EXPONENT, ADD, SUBTRACT, MULTIPLY, 
-		DIVIDE, MODULO, CONCATENATION}
+		DIVIDE, MODULO, CONCATENATION, ASSIGN}
 	private operations operation;
 	private Node left;
 	private Optional<Node> right;
