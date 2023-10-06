@@ -183,8 +183,7 @@ public class Parser
 		
 		// Removes any possible separator after open parenthesis.
 		AcceptSeparators();
-		
-		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
+
 		// A flag to check if what we are working with is a LValue.
 		boolean flag = false;
 		
@@ -206,90 +205,222 @@ public class Parser
 			
 			if (flag == true)
 			{			
-				// Checks for what type of assignment is being done.
-				optionalToken = th.MatchAndRemove(Token.TokenType.ASSIGN);
-				if (optionalToken.isPresent())
+				do
 				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					// Checks through a chain of if statements to see if the next token is an assignment operator, otherwise returns (in the case of stand alone LValues)
+					Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.EXPONENTEQUALS);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.ASSIGN, optionalNode.get(), ParseOperation()); 
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
-				
-				optionalToken = th.MatchAndRemove(Token.TokenType.MINUSEQUALS);
-				if (optionalToken.isPresent())
-				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					if(optionalToken.isEmpty())
+						optionalToken = th.MatchAndRemove(Token.TokenType.MODEQUALS);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, optionalNode.get(), ParseOperation());
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
-				
-				optionalToken = th.MatchAndRemove(Token.TokenType.PLUSEQUALS);
-				if (optionalToken.isPresent())
-				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					if(optionalToken.isEmpty())
+						optionalToken = th.MatchAndRemove(Token.TokenType.MULTIPLYEQUALS);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.ADD, optionalNode.get(), ParseOperation());
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
-				
-				optionalToken = th.MatchAndRemove(Token.TokenType.DIVIDEEQUALS);
-				if (optionalToken.isPresent())
-				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					if(optionalToken.isEmpty())
+						optionalToken = th.MatchAndRemove(Token.TokenType.DIVIDEEQUALS);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, optionalNode.get(), ParseOperation());
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
-				
-				optionalToken = th.MatchAndRemove(Token.TokenType.MULTIPLYEQUALS);
-				if (optionalToken.isPresent())
-				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					if(optionalToken.isEmpty())
+						optionalToken = th.MatchAndRemove(Token.TokenType.PLUSEQUALS);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, optionalNode.get(), ParseOperation());
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
-				
-				optionalToken = th.MatchAndRemove(Token.TokenType.MODEQUALS);
-				if (optionalToken.isPresent())
-				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					if(optionalToken.isEmpty())
+						optionalToken = th.MatchAndRemove(Token.TokenType.MINUSEQUALS);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, optionalNode.get(), ParseOperation());
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
-				
-				optionalToken = th.MatchAndRemove(Token.TokenType.EXPONENTEQUALS);
-				if (optionalToken.isPresent())
-				{
-					// Removes any possible separator after open parenthesis.
-					AcceptSeparators();
+					if(optionalToken.isEmpty())
+						optionalToken = th.MatchAndRemove(Token.TokenType.ASSIGN);
 					
-					// Creates an operation node that contains the operation, lvalue, and following expression(s).
-					OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, optionalNode.get(), ParseOperation());
-					AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
-					return Optional.of(asNode);
-				}
+					if(optionalToken.isEmpty())
+						return optionalNode;
+					
+					// Gets the right expression.
+					Optional<Node> rightNode = ParseTernary();
+					
+					// Creates the AssignmentNode with correct operation (if any) depending on assignment type.
+					if(optionalToken.get().getType() == Token.TokenType.EXPONENTEQUALS)
+					{
+						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, tempOpNode.getRightNode().get(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, asNode.getExpression(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+						}
+						
+						else
+						{
+							OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, optionalNode.get(), rightNode);
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+						}
+					}
+						
+					else if(optionalToken.get().getType() == Token.TokenType.MODEQUALS)
+					{
+						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, tempOpNode.getRightNode().get(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, asNode.getExpression(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+						}
+						
+						else
+						{
+							OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, optionalNode.get(), rightNode);
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+						}
+					}
+					
+					else if(optionalToken.get().getType() == Token.TokenType.MULTIPLYEQUALS)
+					{
+						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, tempOpNode.getRightNode().get(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, asNode.getExpression(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+						}
+						
+						else
+						{
+							OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, optionalNode.get(), rightNode);
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+						}
+					}
+					
+					else if(optionalToken.get().getType() == Token.TokenType.DIVIDEEQUALS)
+					{
+						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, tempOpNode.getRightNode().get(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, asNode.getExpression(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+						}
+						
+						else
+						{
+							OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, optionalNode.get(), rightNode);
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+						}
+					}
+					
+					else if(optionalToken.get().getType() == Token.TokenType.PLUSEQUALS)
+					{
+						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								OperationNode opNode = new OperationNode(OperationNode.operations.ADD, tempOpNode.getRightNode().get(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								OperationNode opNode = new OperationNode(OperationNode.operations.ADD, asNode.getExpression(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+						}
+						
+						else
+						{
+							OperationNode opNode = new OperationNode(OperationNode.operations.ADD, optionalNode.get(), rightNode);
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+						}
+					}
+					
+					else if(optionalToken.get().getType() == Token.TokenType.MINUSEQUALS)
+					{
+						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, tempOpNode.getRightNode().get(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, asNode.getExpression(), rightNode);
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							}
+						}
+						
+						else
+						{
+							OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, optionalNode.get(), rightNode);
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+						}
+					}
+					
+					// Simply assigns with no operation (LValue = expression).
+					else
+					{
+						if(optionalNode.get() instanceof AssignmentNode)
+						{
+							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+							if(asNode.getExpression() instanceof OperationNode)
+							{
+								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), tempOpNode.getRightNode().get()));
+							}
+							// In case the assignment did not have an operation (LValue = expression).
+							else
+							{
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), asNode.getExpression()));
+							}
+						}
+						
+						else
+						{
+							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), rightNode.get()));
+						}
+					}
+				}while(true);
 			}
 		}
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met (if empty will cause an exception).
@@ -303,36 +434,25 @@ public class Parser
 		
 		// Removes any possible separator after open parenthesis.
 		AcceptSeparators();
-		
-		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.QUESTIONMARK); // Checks next token.
-		if (optionalToken.isPresent())
+		do
 		{
+			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.QUESTIONMARK); // Checks next token.
 			
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			if (optionalToken.isEmpty())
+				return optionalNode;
 			
-			// Parses the true case expression in ternary operator.
-			Optional<Node> trueCase = ParseOperation();
+			Optional<Node> trueCase = ParseTernary();
 			
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			optionalToken = th.MatchAndRemove(Token.TokenType.COLON); // Checks next token.
+			// Throws if there is no colon as it should not make it here if it is not a ternary operator.
+			if (optionalToken.isEmpty())
+				throw new IllegalArgumentException("No colon was found in conitional expression");
 			
-			// Ensures a colon is found before parsing next expression.
-			if(th.MatchAndRemove(Token.TokenType.COLON).isEmpty())
-				throw new IllegalArgumentException("No colon was found in ternary operator.");
+			Optional<Node> falseCase = ParseTernary();
 			
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			optionalNode = Optional.of(new TernaryNode(optionalNode.get(), trueCase.get(), falseCase.get()));
 			
-			// Parses the false case expression in ternary operator.
-			Optional<Node> falseCase = ParseOperation();
-			
-			// Returns an optional of a new TernaryNode.
-			return Optional.of(new TernaryNode(optionalNode.get(), trueCase.get(), falseCase.get()));
-		}
-		
-		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
-		return optionalNode;
+		}while(true);
 	}
 	
 	private Optional<Node> ParseOr()
@@ -349,7 +469,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			// Holds the second expression.
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseOr();
 			return Optional.of(new OperationNode(OperationNode.operations.OR, optionalNode.get(), optNode));
 		}
 		
@@ -371,7 +491,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			// Holds the second expression.
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseAnd();
 			return Optional.of(new OperationNode(OperationNode.operations.AND, optionalNode.get(), optNode));
 		}
 		
@@ -393,18 +513,12 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			// Calls ParseLValue to get the array.
+			// Calls ParseLValue to get a variable.
 			Optional<Node> optNode = ParseLValue();
 			if (optNode.get() instanceof VariableReferenceNode)
 			{
-				VariableReferenceNode vrNode = (VariableReferenceNode) optNode.get();
-				if (vrNode.getIndex().isPresent())
-				{
-					return Optional.of(new OperationNode(OperationNode.operations.IN, optionalNode.get(), optNode));
-				}
-				// Throws if VariableReferenceNode has no index indicating it is not an array.
-				else
-					throw new IllegalArgumentException("Variable reference is not an array.");
+				return Optional.of(new OperationNode(OperationNode.operations.IN, optionalNode.get(), optNode));
+
 			}
 			// Throws if return is not a VeriableReferenceNode.
 			else
@@ -431,7 +545,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			// Holds the second expression.
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseMatch();
 			return Optional.of(new OperationNode(OperationNode.operations.MATCH, optionalNode.get(), optNode));
 		}
 		
@@ -440,7 +554,7 @@ public class Parser
 		{
 			AcceptSeparators();
 			// Holds the second expression.
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseMatch();
 			return Optional.of(new OperationNode(OperationNode.operations.NOTMATCH, optionalNode.get(), optNode));
 		}
 		
@@ -463,7 +577,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseBooleanCompare();
 			return Optional.of(new OperationNode(OperationNode.operations.GE, optionalNode.get(), optNode));
 		}
 		
@@ -473,7 +587,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseBooleanCompare();
 			return Optional.of(new OperationNode(OperationNode.operations.GT, optionalNode.get(), optNode));
 		}
 		
@@ -483,7 +597,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseBooleanCompare();
 			return Optional.of(new OperationNode(OperationNode.operations.EQ, optionalNode.get(), optNode));
 		}
 		
@@ -493,7 +607,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseBooleanCompare();
 			return Optional.of(new OperationNode(OperationNode.operations.NE, optionalNode.get(), optNode));
 		}
 		
@@ -503,7 +617,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseBooleanCompare();
 			return Optional.of(new OperationNode(OperationNode.operations.LE, optionalNode.get(), optNode));
 		}
 		
@@ -513,7 +627,7 @@ public class Parser
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
 			
-			Optional<Node> optNode = ParseOperation();
+			Optional<Node> optNode = ParseBooleanCompare();
 			if(optNode.isPresent())
 				return Optional.of(new OperationNode(OperationNode.operations.LT, optionalNode.get(), optNode));
 			else
@@ -534,19 +648,22 @@ public class Parser
 		
 		// Checks if the right expression is an LValue to concatenate the string.
 		Optional<Node> optNode = ParseLValue();
-		// Only excepts an OperationNode with field reference.
-		if (optNode.get() instanceof OperationNode)
-		{
-			OperationNode opNode = (OperationNode) optNode.get();
-			if (opNode.getOperation() == OperationNode.operations.DOLLAR);
-			// Throws an exception in case any of the other Operations were attempted to be called in ParseBottomValue.
-			else
-				throw new IllegalArgumentException("Unable to concatinate a " + opNode.getOperation());
-		}
-		
 		if (optNode.isPresent())
 		{
-			return Optional.of(new OperationNode(OperationNode.operations.CONCATENATION, optionalNode.get(), optNode));
+			// Only excepts an OperationNode with field reference.
+			if (optNode.get() instanceof OperationNode)
+			{
+				OperationNode opNode = (OperationNode) optNode.get();
+				if (opNode.getOperation() == OperationNode.operations.DOLLAR);
+				// Throws an exception in case any of the other Operations were attempted to be called in ParseBottomValue.
+				else
+					throw new IllegalArgumentException("Unable to concatinate a " + opNode.getOperation());
+			}
+			
+			if (optNode.isPresent())
+			{
+				return Optional.of(new OperationNode(OperationNode.operations.CONCATENATION, optionalNode.get(), optNode));
+			}
 		}
 		
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
@@ -558,29 +675,24 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseTerm();
 		
-		// Checks each possible Boolean compare and returns one if it is found.
-		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.PLUS);
-		if(optionalToken.isPresent())
+		do
 		{
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.PLUS);
 			
-			Optional<Node> optNode = ParseOperation();
-			return Optional.of(new OperationNode(OperationNode.operations.ADD, optionalNode.get(), optNode));
-		}
-		
-		optionalToken = th.MatchAndRemove(Token.TokenType.MINUS);
-		if(optionalToken.isPresent())
-		{
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			if(optionalToken.isEmpty())
+				optionalToken = th.MatchAndRemove(Token.TokenType.MINUS);
 			
-			Optional<Node> optNode = ParseOperation();
-			return Optional.of(new OperationNode(OperationNode.operations.SUBTRACT, optionalNode.get(), optNode));
-		}
-		
-		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
-		return optionalNode;
+			if(optionalToken.isEmpty())
+				return optionalNode;
+			
+			Optional<Node> rightNode = ParseTerm();
+			
+			if(optionalToken.get().getType() == Token.TokenType.PLUS)
+				optionalNode = Optional.of(new OperationNode(OperationNode.operations.ADD, optionalNode.get(), rightNode));
+			else
+				optionalNode = Optional.of(new OperationNode(OperationNode.operations.SUBTRACT, optionalNode.get(), rightNode));
+			
+		}while(true);
 	}
 	
 	// Deals with multiplication, division, and modulo.
@@ -589,39 +701,29 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseFactor();
 		
-		// Checks each possible Boolean compare and returns one if it is found.
-		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.MULTIPLY);
-		if(optionalToken.isPresent())
+		do
 		{
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.MULTIPLY);
 			
-			Optional<Node> optNode = ParseOperation();
-			return Optional.of(new OperationNode(OperationNode.operations.MULTIPLY, optionalNode.get(), optNode));
-		}
-		
-		optionalToken = th.MatchAndRemove(Token.TokenType.DIVIDE);
-		if(optionalToken.isPresent())
-		{
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			if(optionalToken.isEmpty())
+				optionalToken = th.MatchAndRemove(Token.TokenType.DIVIDE);
 			
-			Optional<Node> optNode = ParseOperation();
-			return Optional.of(new OperationNode(OperationNode.operations.DIVIDE, optionalNode.get(), optNode));
-		}
-		
-		optionalToken = th.MatchAndRemove(Token.TokenType.MODULO);
-		if(optionalToken.isPresent())
-		{
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
+			if(optionalToken.isEmpty())
+				optionalToken = th.MatchAndRemove(Token.TokenType.MODULO);
 			
-			Optional<Node> optNode = ParseOperation();
-			return Optional.of(new OperationNode(OperationNode.operations.MODULO, optionalNode.get(), optNode));
-		}
-		
-		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
-		return optionalNode;
+			if(optionalToken.isEmpty())
+				return optionalNode;
+			
+			Optional<Node> rightNode = ParseFactor();
+			
+			if(optionalToken.get().getType() == Token.TokenType.MULTIPLY)
+				optionalNode = Optional.of(new OperationNode(OperationNode.operations.MULTIPLY, optionalNode.get(), rightNode));
+			else if(optionalToken.get().getType() == Token.TokenType.DIVIDE)
+				optionalNode = Optional.of(new OperationNode(OperationNode.operations.DIVIDE, optionalNode.get(), rightNode));
+			else
+				optionalNode = Optional.of(new OperationNode(OperationNode.operations.MODULO, optionalNode.get(), rightNode));
+			
+		}while(true);
 	}
 	
 	// Doesn't do much since all the factoring is being done under this method, only implemented for rubric sake.
@@ -642,18 +744,18 @@ public class Parser
 		// Removes any possible separator after open parenthesis.
 		AcceptSeparators();
 		
-		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.EXPONENT);
-		if (optionalToken.isPresent())
+		do
 		{
-			// Removes any possible separator after open parenthesis.
-			AcceptSeparators();
-			// Holds the second expression.
-			Optional<Node> optNode = ParseOperation();
-			return Optional.of(new OperationNode(OperationNode.operations.EXPONENT, optionalNode.get(), optNode)); 
-		}
-		
-		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
-		return optionalNode;
+			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.EXPONENT);
+			
+			if(optionalToken.isEmpty())
+				return optionalNode;
+			
+			Optional<Node> rightNode = ParsePostIncrementAndDecrement();
+			
+			optionalNode = Optional.of(new OperationNode(OperationNode.operations.EXPONENT, optionalNode.get(), rightNode));
+			
+		}while(true);
 	}
 	
 	private Optional<Node> ParsePostIncrementAndDecrement()
@@ -688,6 +790,11 @@ public class Parser
 	{
 		Optional<Node> optionalNode = ParseBottomLevel(); // Ensures ParseOperation/ParseBottomLevel returns something.
 		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
+		
+		// Returns optionalNode if it a Constant for concatenation reasons.
+		if (optionalNode.isPresent())
+			if (optionalNode.get() instanceof ConstantNode)
+				return optionalNode;
 		
 		// Checks for field reference.
 		optionalToken = th.MatchAndRemove(Token.TokenType.DOLLAR);

@@ -1,3 +1,5 @@
+import static org.junit.Assert.assertEquals;
+
 import java.util.InputMismatchException;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -7,7 +9,255 @@ import org.junit.Test;
 
 public class UnitTest 
 {
+	@Test
+	public void AssignmentTest()
+	{
+		Lexer lexer = new Lexer("a += b -= 5");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks down Assignment Node
+	    AssignmentNode asNode = (AssignmentNode) parser.ParseOperation().get();
+	    
+	    // Checks the first OperationNode (b - 5)
+	    OperationNode subtractionNode = (OperationNode) asNode.getExpression();
+	    Assert.assertEquals(subtractionNode.getOperation(), OperationNode.operations.SUBTRACT);
+	    ConstantNode rightConstantNode = (ConstantNode) subtractionNode.getRightNode().get();
+	    Assert.assertEquals(rightConstantNode.getConstantValue(), "5");
+	    VariableReferenceNode leftSubtractionNode = (VariableReferenceNode) subtractionNode.getLeftNode();
+	    Assert.assertEquals(leftSubtractionNode.getName(), "b");
+	    
+	    AssignmentNode nestedAsNode = (AssignmentNode) asNode.getTarget();
+	    
+	    // Checks the second OperationNode (a + b)
+	    OperationNode additionNode = (OperationNode) nestedAsNode.getExpression();
+	    Assert.assertEquals(additionNode.getOperation(), OperationNode.operations.ADD);
+	    VariableReferenceNode rightAdditionNode = (VariableReferenceNode) additionNode.getRightNode().get();
+	    Assert.assertEquals(rightAdditionNode.getName(), "b");
+	    VariableReferenceNode leftAdditionNode = (VariableReferenceNode) additionNode.getLeftNode();
+	    Assert.assertEquals(leftAdditionNode.getName(), "a");
+	    
+	    // Gets the anticipated target from the nested AssignmentNode.
+	    VariableReferenceNode targetVrNode = (VariableReferenceNode) nestedAsNode.getTarget();
+	    Assert.assertEquals(targetVrNode.getName(), "a");
+	}
 	
+	@Test
+	public void TernaryTest()
+	{
+		Lexer lexer = new Lexer("a > b ? a > c ? a : c : b");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    TernaryNode terNode = (TernaryNode) parser.ParseOperation().get();
+	    /*OperationNode condition = (OperationNode) terNode.getExpression();
+	    
+	    Assert.assertEquals(condition.getOperation(), OperationNode.operations.NE);
+	    
+	    // Breaks down contents of the OperationNode.
+	    VariableReferenceNode leftVrNode = (VariableReferenceNode) condition.getLeftNode();
+	    ConstantNode rightConstNode = (ConstantNode) condition.getRightNode().get();
+	    
+	    Assert.assertEquals(leftVrNode.getName(), "a");
+	    Assert.assertEquals(rightConstNode.getConstantValue(), "5");
+	    
+	    // Breaks down the cases.
+	    VariableReferenceNode trueCase = (VariableReferenceNode) terNode.getTrueCase();
+	    ConstantNode falseCase = (ConstantNode) terNode.getFalseCase();
+	    
+	    Assert.assertEquals(trueCase.getName(), "a");
+	    Assert.assertEquals(falseCase.getConstantValue(), "5"); */
+	}
+	
+	@Test
+	public void OrBooleanTest()
+	{
+		Lexer lexer = new Lexer("(a < 10) || (a > 20)");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.OR);
+	    
+	    OperationNode leftOpNode = (OperationNode) opNode.getLeftNode();
+	    OperationNode rightOpNode = (OperationNode) opNode.getRightNode().get();
+	    
+	    Assert.assertEquals(leftOpNode.getOperation(), OperationNode.operations.LT);
+	    Assert.assertEquals(rightOpNode.getOperation(), OperationNode.operations.GT);
+	    
+	    VariableReferenceNode leftVrNode = (VariableReferenceNode) leftOpNode.getLeftNode();
+	    ConstantNode leftConstNode = (ConstantNode) leftOpNode.getRightNode().get();
+	    
+	    Assert.assertEquals(leftVrNode.getName(), "a");
+	    Assert.assertEquals(leftConstNode.getConstantValue(), "10");
+	    
+	    VariableReferenceNode rightVrNode = (VariableReferenceNode) rightOpNode.getLeftNode();
+	    ConstantNode rightConstNode = (ConstantNode) rightOpNode.getRightNode().get();
+	    
+	    Assert.assertEquals(rightVrNode.getName(), "a");
+	    Assert.assertEquals(rightConstNode.getConstantValue(), "20");
+	}
+	
+	@Test
+	public void AndBooleanTest()
+	{
+		Lexer lexer = new Lexer("(a >= 10) && (a <= 20)");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.AND);
+	    
+	    OperationNode leftOpNode = (OperationNode) opNode.getLeftNode();
+	    OperationNode rightOpNode = (OperationNode) opNode.getRightNode().get();
+	    
+	    Assert.assertEquals(leftOpNode.getOperation(), OperationNode.operations.GE);
+	    Assert.assertEquals(rightOpNode.getOperation(), OperationNode.operations.LE);
+	    
+	    VariableReferenceNode leftVrNode = (VariableReferenceNode) leftOpNode.getLeftNode();
+	    ConstantNode leftConstNode = (ConstantNode) leftOpNode.getRightNode().get();
+	    
+	    Assert.assertEquals(leftVrNode.getName(), "a");
+	    Assert.assertEquals(leftConstNode.getConstantValue(), "10");
+	    
+	    VariableReferenceNode rightVrNode = (VariableReferenceNode) rightOpNode.getLeftNode();
+	    ConstantNode rightConstNode = (ConstantNode) rightOpNode.getRightNode().get();
+	    
+	    Assert.assertEquals(rightVrNode.getName(), "a");
+	    Assert.assertEquals(rightConstNode.getConstantValue(), "20");
+	}
+	
+	@Test
+	public void ArrayMembershipTest()
+	{
+		
+	}
+	
+	@Test
+	public void MatchTest()
+	{
+		Lexer lexer = new Lexer("($1 ~ `hello`) && ($2 !~ `world`)");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.AND);
+	    
+	    // Breaks down left side of the comparison.
+	    OperationNode leftMatch = (OperationNode) opNode.getLeftNode();
+	    Assert.assertEquals(leftMatch.getOperation(), OperationNode.operations.MATCH);
+	    OperationNode leftFieldRef = (OperationNode) leftMatch.getLeftNode();
+	    Assert.assertEquals(leftFieldRef.getOperation(), OperationNode.operations.DOLLAR);
+	    ConstantNode leftConst = (ConstantNode) leftFieldRef.getLeftNode();
+	    Assert.assertEquals(leftConst.getConstantValue(), "1");
+	    PatternNode leftPattern = (PatternNode) leftMatch.getRightNode().get();
+	    Assert.assertEquals(leftPattern.getPattern(), "hello");
+	    
+	    // Breaks down right side of the comparison.
+	    OperationNode rightMatch = (OperationNode) opNode.getRightNode().get();
+	    Assert.assertEquals(rightMatch.getOperation(), OperationNode.operations.NOTMATCH);
+	    OperationNode rightFieldRef = (OperationNode) rightMatch.getLeftNode();
+	    Assert.assertEquals(rightFieldRef.getOperation(), OperationNode.operations.DOLLAR);
+	    ConstantNode rightConst = (ConstantNode) rightFieldRef.getLeftNode();
+	    Assert.assertEquals(rightConst.getConstantValue(), "2");
+	    PatternNode rightPattern = (PatternNode) rightMatch.getRightNode().get();
+	    Assert.assertEquals(rightPattern.getPattern(), "world");
+	}
+	
+	@Test
+	public void ConcatenationTest()
+	{
+		Lexer lexer = new Lexer("\"The value of A is: \" A");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.CONCATENATION);
+	    
+	    ConstantNode constNode = (ConstantNode) opNode.getLeftNode();
+	    VariableReferenceNode vrNode = (VariableReferenceNode) opNode.getRightNode().get();
+	    
+	    Assert.assertEquals(constNode.getConstantValue(), "The value of A is: ");
+	    Assert.assertEquals(vrNode.getName(), "A");
+	}
+	
+	@Test
+	public void ExpressionTermFactorTest()
+	{
+		Lexer lexer = new Lexer("6 / 2 * 1 + 2"); // Parenthesis needs to be changed.
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    // Breaks down the division.
+	    OperationNode additionNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(additionNode.getOperation(), OperationNode.operations.ADD);
+	    ConstantNode rightAdditionConst = (ConstantNode) additionNode.getRightNode().get();
+	    Assert.assertEquals(rightAdditionConst.getConstantValue(), "2");
+	    
+	    // Breaks down the multiplication.
+	    OperationNode multiplyNode = (OperationNode) additionNode.getLeftNode();
+	    Assert.assertEquals(multiplyNode.getOperation(), OperationNode.operations.MULTIPLY);
+	    ConstantNode rightMultiplyConst = (ConstantNode) multiplyNode.getRightNode().get();
+	    Assert.assertEquals(rightMultiplyConst.getConstantValue(), "1");
+	    
+	    // Breaks down the addition.
+	    OperationNode divideNode = (OperationNode) multiplyNode.getLeftNode();
+	    Assert.assertEquals(divideNode.getOperation(), OperationNode.operations.DIVIDE);
+	    ConstantNode rightDivideConst = (ConstantNode) divideNode.getRightNode().get();
+	    ConstantNode leftDivideConst = (ConstantNode) divideNode.getLeftNode();
+	    Assert.assertEquals(rightDivideConst.getConstantValue(), "2");
+	    Assert.assertEquals(leftDivideConst.getConstantValue(), "6");
+	}
+	
+	@Test
+	public void ExponentsTest()
+	{
+		Lexer lexer = new Lexer("a^2^3");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.EXPONENT);
+	    
+	    ConstantNode rightConstNode = (ConstantNode) opNode.getRightNode().get();
+	    
+	    Assert.assertEquals(rightConstNode.getConstantValue(), "3");
+	    
+	    OperationNode leftOpNode = (OperationNode) opNode.getLeftNode();
+	    Assert.assertEquals(leftOpNode.getOperation(), OperationNode.operations.EXPONENT);
+	    
+	    ConstantNode nestedRightConstNode = (ConstantNode) leftOpNode.getRightNode().get();
+	    VariableReferenceNode vrNode = (VariableReferenceNode) leftOpNode.getLeftNode();
+	    
+	    Assert.assertEquals(nestedRightConstNode.getConstantValue(), "2");
+	    Assert.assertEquals(vrNode.getName(), "a");
+	    
+	}
+	
+	@Test
+	public void PostIncrementAndDecrementTest()
+	{
+		Lexer lexer = new Lexer("(a--)++");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.POSTINC);
+	    
+	    OperationNode nestedOpNode = (OperationNode) opNode.getLeftNode();
+	    
+	    Assert.assertEquals(nestedOpNode.getOperation(), OperationNode.operations.POSTDEC);
+	    
+	    VariableReferenceNode vrNode = (VariableReferenceNode) nestedOpNode.getLeftNode();
+	    
+	    Assert.assertEquals(vrNode.getName(), "a");
+	    
+	}
 	
 	// All tests past this point are for parser 2
 	@Test
