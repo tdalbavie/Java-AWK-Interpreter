@@ -231,195 +231,207 @@ public class Parser
 					if(optionalToken.isEmpty())
 						return optionalNode;
 					
+					// Removes any possible separator after open parenthesis.
+					AcceptSeparators();
+					
 					// Gets the right expression.
 					Optional<Node> rightNode = ParseTernary();
 					
-					// Creates the AssignmentNode with correct operation (if any) depending on assignment type.
-					if(optionalToken.get().getType() == Token.TokenType.EXPONENTEQUALS)
+					if(rightNode.isPresent())
 					{
-						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
-						if(optionalNode.get() instanceof AssignmentNode)
+						// Removes any possible separator after open parenthesis.
+						AcceptSeparators();
+						
+						// Creates the AssignmentNode with correct operation (if any) depending on assignment type.
+						if(optionalToken.get().getType() == Token.TokenType.EXPONENTEQUALS)
 						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
 							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, tempOpNode.getRightNode().get(), rightNode);
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, tempOpNode.getRightNode().get(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, asNode.getExpression(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
 							}
-							// In case the assignment did not have an operation (LValue = expression).
+							
 							else
 							{
-								OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, asNode.getExpression(), rightNode);
+								OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, optionalNode.get(), rightNode);
 								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
 							}
 						}
-						
-						else
+							
+						else if(optionalToken.get().getType() == Token.TokenType.MODEQUALS)
 						{
-							OperationNode opNode = new OperationNode(OperationNode.operations.EXPONENT, optionalNode.get(), rightNode);
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
-						}
-					}
-						
-					else if(optionalToken.get().getType() == Token.TokenType.MODEQUALS)
-					{
-						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
-						if(optionalNode.get() instanceof AssignmentNode)
-						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
 							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, tempOpNode.getRightNode().get(), rightNode);
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, tempOpNode.getRightNode().get(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, asNode.getExpression(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
 							}
-							// In case the assignment did not have an operation (LValue = expression).
+							
 							else
 							{
-								OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, asNode.getExpression(), rightNode);
+								OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, optionalNode.get(), rightNode);
 								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
 							}
 						}
 						
-						else
+						else if(optionalToken.get().getType() == Token.TokenType.MULTIPLYEQUALS)
 						{
-							OperationNode opNode = new OperationNode(OperationNode.operations.MODULO, optionalNode.get(), rightNode);
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
-						}
-					}
-					
-					else if(optionalToken.get().getType() == Token.TokenType.MULTIPLYEQUALS)
-					{
-						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
-						if(optionalNode.get() instanceof AssignmentNode)
-						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
 							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, tempOpNode.getRightNode().get(), rightNode);
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, tempOpNode.getRightNode().get(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, asNode.getExpression(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
 							}
-							// In case the assignment did not have an operation (LValue = expression).
+							
 							else
 							{
-								OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, asNode.getExpression(), rightNode);
+								OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, optionalNode.get(), rightNode);
 								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
 							}
 						}
 						
-						else
+						else if(optionalToken.get().getType() == Token.TokenType.DIVIDEEQUALS)
 						{
-							OperationNode opNode = new OperationNode(OperationNode.operations.MULTIPLY, optionalNode.get(), rightNode);
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
-						}
-					}
-					
-					else if(optionalToken.get().getType() == Token.TokenType.DIVIDEEQUALS)
-					{
-						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
-						if(optionalNode.get() instanceof AssignmentNode)
-						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
 							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, tempOpNode.getRightNode().get(), rightNode);
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, tempOpNode.getRightNode().get(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, asNode.getExpression(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
 							}
-							// In case the assignment did not have an operation (LValue = expression).
+							
 							else
 							{
-								OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, asNode.getExpression(), rightNode);
+								OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, optionalNode.get(), rightNode);
 								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
 							}
 						}
 						
-						else
+						else if(optionalToken.get().getType() == Token.TokenType.PLUSEQUALS)
 						{
-							OperationNode opNode = new OperationNode(OperationNode.operations.DIVIDE, optionalNode.get(), rightNode);
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
-						}
-					}
-					
-					else if(optionalToken.get().getType() == Token.TokenType.PLUSEQUALS)
-					{
-						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
-						if(optionalNode.get() instanceof AssignmentNode)
-						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
 							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								OperationNode opNode = new OperationNode(OperationNode.operations.ADD, tempOpNode.getRightNode().get(), rightNode);
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									OperationNode opNode = new OperationNode(OperationNode.operations.ADD, tempOpNode.getRightNode().get(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									OperationNode opNode = new OperationNode(OperationNode.operations.ADD, asNode.getExpression(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
 							}
-							// In case the assignment did not have an operation (LValue = expression).
+							
 							else
 							{
-								OperationNode opNode = new OperationNode(OperationNode.operations.ADD, asNode.getExpression(), rightNode);
+								OperationNode opNode = new OperationNode(OperationNode.operations.ADD, optionalNode.get(), rightNode);
 								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
 							}
 						}
 						
-						else
+						else if(optionalToken.get().getType() == Token.TokenType.MINUSEQUALS)
 						{
-							OperationNode opNode = new OperationNode(OperationNode.operations.ADD, optionalNode.get(), rightNode);
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
-						}
-					}
-					
-					else if(optionalToken.get().getType() == Token.TokenType.MINUSEQUALS)
-					{
-						// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode.
-						if(optionalNode.get() instanceof AssignmentNode)
-						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
 							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, tempOpNode.getRightNode().get(), rightNode);
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, tempOpNode.getRightNode().get(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, asNode.getExpression(), rightNode);
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+								}
 							}
-							// In case the assignment did not have an operation (LValue = expression).
+							
 							else
 							{
-								OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, asNode.getExpression(), rightNode);
+								OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, optionalNode.get(), rightNode);
 								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
 							}
 						}
 						
+						// Simply assigns with no operation (LValue = expression).
 						else
 						{
-							OperationNode opNode = new OperationNode(OperationNode.operations.SUBTRACT, optionalNode.get(), rightNode);
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), opNode));
+							// Fetches the left value for OperationNode to prevent the value from being an AssignmentNode (in case of multiple assignments).
+							if(optionalNode.get() instanceof AssignmentNode)
+							{
+								AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+								if(asNode.getExpression() instanceof OperationNode)
+								{
+									OperationNode tempOpNode = (OperationNode) asNode.getExpression();
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), tempOpNode.getRightNode().get()));
+								}
+								// In case the assignment did not have an operation (LValue = expression).
+								else
+								{
+									optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), asNode.getExpression()));
+								}
+							}
+							
+							else
+							{
+								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), rightNode.get()));
+							}
 						}
 					}
-					
-					// Simply assigns with no operation (LValue = expression).
 					else
-					{
-						if(optionalNode.get() instanceof AssignmentNode)
-						{
-							AssignmentNode asNode = (AssignmentNode) optionalNode.get();
-							if(asNode.getExpression() instanceof OperationNode)
-							{
-								OperationNode tempOpNode = (OperationNode) asNode.getExpression();
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), tempOpNode.getRightNode().get()));
-							}
-							// In case the assignment did not have an operation (LValue = expression).
-							else
-							{
-								optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), asNode.getExpression()));
-							}
-						}
-						
-						else
-						{
-							optionalNode = Optional.of(new AssignmentNode(optionalNode.get(), rightNode.get()));
-						}
-					}
+						throw new IllegalArgumentException("No expression found while assigning");
 				}while(true);
 			}
 		}
@@ -441,16 +453,31 @@ public class Parser
 			if (optionalToken.isEmpty())
 				return optionalNode;
 			
+			// Removes any possible separator after open parenthesis.
+			AcceptSeparators();
+			
 			Optional<Node> trueCase = ParseTernary();
 			
-			optionalToken = th.MatchAndRemove(Token.TokenType.COLON); // Checks next token.
-			// Throws if there is no colon as it should not make it here if it is not a ternary operator.
-			if (optionalToken.isEmpty())
-				throw new IllegalArgumentException("No colon was found in conitional expression");
-			
-			Optional<Node> falseCase = ParseTernary();
-			
-			optionalNode = Optional.of(new TernaryNode(optionalNode.get(), trueCase.get(), falseCase.get()));
+			if(trueCase.isPresent())
+			{
+				
+				optionalToken = th.MatchAndRemove(Token.TokenType.COLON); // Checks next token.
+				// Throws if there is no colon as it should not make it here if it is not a ternary operator.
+				if (optionalToken.isEmpty())
+					throw new IllegalArgumentException("No colon was found in ternary expression");
+				
+				// Removes any possible separator after open parenthesis.
+				AcceptSeparators();
+				
+				Optional<Node> falseCase = ParseTernary();
+				
+				if(falseCase.isPresent())
+					optionalNode = Optional.of(new TernaryNode(optionalNode.get(), trueCase.get(), falseCase.get()));
+				else
+					throw new IllegalArgumentException("No false case was found in ternary expression.");
+			}
+			else
+				throw new IllegalArgumentException("No true case was found in ternary expression");
 			
 		}while(true);
 	}
@@ -468,9 +495,13 @@ public class Parser
 		{
 			// Removes any possible separator after open parenthesis.
 			AcceptSeparators();
+			
 			// Holds the second expression.
 			Optional<Node> optNode = ParseOr();
-			return Optional.of(new OperationNode(OperationNode.operations.OR, optionalNode.get(), optNode));
+			if(optNode.isPresent())
+				return Optional.of(new OperationNode(OperationNode.operations.OR, optionalNode.get(), optNode));
+			else
+				throw new IllegalArgumentException("No second expression was found after || operator.");
 		}
 		
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
@@ -492,7 +523,11 @@ public class Parser
 			AcceptSeparators();
 			// Holds the second expression.
 			Optional<Node> optNode = ParseAnd();
-			return Optional.of(new OperationNode(OperationNode.operations.AND, optionalNode.get(), optNode));
+			
+			if(optNode.isPresent())
+				return Optional.of(new OperationNode(OperationNode.operations.AND, optionalNode.get(), optNode));
+			else
+				throw new IllegalArgumentException("No second expression was found after && operator.");
 		}
 		
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
@@ -546,7 +581,10 @@ public class Parser
 			AcceptSeparators();
 			// Holds the second expression.
 			Optional<Node> optNode = ParseMatch();
-			return Optional.of(new OperationNode(OperationNode.operations.MATCH, optionalNode.get(), optNode));
+			if(optNode.isPresent())
+				return Optional.of(new OperationNode(OperationNode.operations.MATCH, optionalNode.get(), optNode));
+			else
+				throw new IllegalArgumentException("No second expression was found after ~ operator.");
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.NOTMATCH);
@@ -555,7 +593,10 @@ public class Parser
 			AcceptSeparators();
 			// Holds the second expression.
 			Optional<Node> optNode = ParseMatch();
-			return Optional.of(new OperationNode(OperationNode.operations.NOTMATCH, optionalNode.get(), optNode));
+			if(optNode.isPresent())
+				return Optional.of(new OperationNode(OperationNode.operations.NOTMATCH, optionalNode.get(), optNode));
+			else
+				throw new IllegalArgumentException("No second expression was found after !~ operator.");
 		}
 		
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
@@ -578,7 +619,10 @@ public class Parser
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
-			return Optional.of(new OperationNode(OperationNode.operations.GE, optionalNode.get(), optNode));
+			if(optNode.isPresent())
+				return Optional.of(new OperationNode(OperationNode.operations.GE, optionalNode.get(), optNode));
+			else
+				throw new IllegalArgumentException("No second expression was found after >= operator.");
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.GREATERTHAN);
@@ -588,7 +632,10 @@ public class Parser
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
-			return Optional.of(new OperationNode(OperationNode.operations.GT, optionalNode.get(), optNode));
+			if(optNode.isPresent())
+				return Optional.of(new OperationNode(OperationNode.operations.GT, optionalNode.get(), optNode));
+			else
+				throw new IllegalArgumentException("No second expression was found after > operator.");
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.EQUALS);

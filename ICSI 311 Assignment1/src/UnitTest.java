@@ -50,23 +50,38 @@ public class UnitTest
 	    Parser parser = new Parser(tokens);
 	    
 	    TernaryNode terNode = (TernaryNode) parser.ParseOperation().get();
-	    /*OperationNode condition = (OperationNode) terNode.getExpression();
 	    
-	    Assert.assertEquals(condition.getOperation(), OperationNode.operations.NE);
+	    // Checks first condition OperationNode (a > b).
+	    OperationNode terCondition = (OperationNode) terNode.getExpression();
+	    Assert.assertEquals(terCondition.getOperation(), OperationNode.operations.GT);
+	    VariableReferenceNode leftTerCondition = (VariableReferenceNode) terCondition.getLeftNode();
+	    VariableReferenceNode rightTerCondition = (VariableReferenceNode) terCondition.getRightNode().get();
+	    Assert.assertEquals(leftTerCondition.getName(), "a");
+	    Assert.assertEquals(rightTerCondition.getName(), "b");
 	    
-	    // Breaks down contents of the OperationNode.
-	    VariableReferenceNode leftVrNode = (VariableReferenceNode) condition.getLeftNode();
-	    ConstantNode rightConstNode = (ConstantNode) condition.getRightNode().get();
+	    // Checks false case (b at the end of string).
+	    VariableReferenceNode falseTerNode = (VariableReferenceNode) terNode.getFalseCase();
+	    Assert.assertEquals(falseTerNode.getName(), "b");
 	    
-	    Assert.assertEquals(leftVrNode.getName(), "a");
-	    Assert.assertEquals(rightConstNode.getConstantValue(), "5");
+	    // Checks true case (a > b ? a : c).
+	    TernaryNode nestedTerNode = (TernaryNode) terNode.getTrueCase();
 	    
-	    // Breaks down the cases.
-	    VariableReferenceNode trueCase = (VariableReferenceNode) terNode.getTrueCase();
-	    ConstantNode falseCase = (ConstantNode) terNode.getFalseCase();
+	    // Checks inner ternary node condition (a > c)
+	    OperationNode nestedTerCondition = (OperationNode) nestedTerNode.getExpression();
+	    Assert.assertEquals(nestedTerCondition.getOperation(), OperationNode.operations.GT);
+	    VariableReferenceNode nestedLeftTerCondition = (VariableReferenceNode) nestedTerCondition.getLeftNode();
+	    VariableReferenceNode nestedRightTerCondition = (VariableReferenceNode) nestedTerCondition.getRightNode().get();
+	    Assert.assertEquals(nestedLeftTerCondition.getName(), "a");
+	    Assert.assertEquals(nestedRightTerCondition.getName(), "c");
 	    
-	    Assert.assertEquals(trueCase.getName(), "a");
-	    Assert.assertEquals(falseCase.getConstantValue(), "5"); */
+	    // Checks inner false case (c)
+	    VariableReferenceNode nestedFalseTerNode = (VariableReferenceNode) nestedTerNode.getFalseCase();
+	    Assert.assertEquals(nestedFalseTerNode.getName(), "c");
+	    
+	    // Checks inner true case (a)
+	    VariableReferenceNode nestedTrueTerNode = (VariableReferenceNode) nestedTerNode.getTrueCase();
+	    Assert.assertEquals(nestedTrueTerNode.getName(), "a");
+	    
 	}
 	
 	@Test
@@ -132,7 +147,19 @@ public class UnitTest
 	@Test
 	public void ArrayMembershipTest()
 	{
-		
+		Lexer lexer = new Lexer("a in b");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    
+	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.IN);
+	    
+	    VariableReferenceNode leftVrNode = (VariableReferenceNode) opNode.getLeftNode();
+	    VariableReferenceNode rightVrNode = (VariableReferenceNode) opNode.getRightNode().get();
+	    
+	    Assert.assertEquals(leftVrNode.getName(), "a");
+	    Assert.assertEquals(rightVrNode.getName(), "b");
 	}
 	
 	@Test
