@@ -75,11 +75,12 @@ public class Parser
 		
 		// Takes in the function parameter name (if there is one).
 		optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
+		
 		// Removes any possible separator after parameter name.
 		AcceptSeparators();
 		
 		// Checks if there is a function parameter name and processes however many parameter names that were defined.
-		if (optionalToken.isPresent() == true)
+		if (optionalToken.isPresent())
 		{
 			// Adds the first parameter to the list.
 			ParameterNames.add(optionalToken.get().getValue());
@@ -89,14 +90,14 @@ public class Parser
 			AcceptSeparators();
 			
 			// Loops as long as there are more parameters to add to the list.
-			while (optionalToken.isPresent() == true)
+			while (optionalToken.isPresent())
 			{
 				optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
 				// Removes any possible separator after parameter name.
 				AcceptSeparators();
 				
 				// Makes sure that there is another parameter.
-				if (optionalToken.isPresent() == true)
+				if (optionalToken.isPresent())
 				{
 					ParameterNames.add(optionalToken.get().getValue());
 					// Checks if there is a comma then continue loop if present.
@@ -120,7 +121,7 @@ public class Parser
 		
 		// Creates the BlockNode containing the statements.
 		BlockNode block = ParseBlock();
-		LinkedList<StatementNode> statements = block.StatementsAccessor();
+		LinkedList<StatementNode> statements = block.getStatements();
 		
 		// Initializes the FunctionDefinitionNode with all collected data.
 		FDN = new FunctionDefinitionNode(statements, ParameterNames, FunctionName);
@@ -142,6 +143,9 @@ public class Parser
 		
 		if (optionalToken.isPresent() == true)
 		{
+			// Removes any possible separators after BEGIN keyword.
+			AcceptSeparators();
+			
 			node.getStartBlock().add(ParseBlock());
 			parsed = true;
 		}
@@ -151,6 +155,9 @@ public class Parser
 		
 		if (optionalToken.isPresent() == true)
 		{
+			// Removes any possible separators after END keyword.
+			AcceptSeparators();
+			
 			node.getEndBlock().add(ParseBlock());
 			parsed = true;
 		}
@@ -168,6 +175,174 @@ public class Parser
 			return true;
 		else
 			return false;
+	}
+	
+	private BlockNode ParseBlock()
+	{	
+		Optional<Token> optionalToken = Optional.empty();
+		Optional<Node> Condition = Optional.empty();
+		LinkedList<StatementNode> Statements = new LinkedList<StatementNode>();
+		BlockNode block;
+		
+		// Checks if block has multiple lines.
+		optionalToken = th.MatchAndRemove(Token.TokenType.OPENCURLBRACK);
+		if(optionalToken.isPresent())
+		{
+			// Loops until all statements have been parsed.
+			do
+			{
+				// Removes any possible separators after END keyword.
+				AcceptSeparators();
+				
+				Statements.add(ParseStatement().get());
+			}while(optionalToken.isPresent());
+			
+			// Makes sure block was closed.
+			optionalToken = th.MatchAndRemove(Token.TokenType.CLOSECURLBRACK);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No closed curly brace found after block.");
+		}
+		// Processes single line blocks.
+		else
+		{
+			// Removes any possible separators after END keyword.
+			AcceptSeparators();
+			
+			Statements.add(ParseStatement().get());
+		}
+		
+		return new BlockNode(Condition);
+	}
+	
+	private Optional<StatementNode> ParseStatement()
+	{
+		Optional<Token> optionalToken = Optional.empty();
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.CONTINUE);
+		if(optionalToken.isPresent())
+		{
+			return Optional.of(new ContinueNode());
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.BREAK);
+		if(optionalToken.isPresent())
+		{
+			return Optional.of(new BreakNode());
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.IF);
+		if(optionalToken.isPresent())
+		{
+			/*
+			 * Steps:
+			 * Create an IfNode for the first if statement (call ParseOperation for condition, ParseBlock for statements).
+			 * Make an IfNode current and set it equal to the first statement.
+			 * Check for an else token then an if token and loop though each one with new IfNode until no more else-if/else are found.
+			 * Return the head IfNode.
+			 */
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.FOR);
+		if(optionalToken.isPresent())
+		{
+			/*
+			 * Steps:
+			 * call ParseOperation then check if there is a separator token.
+			 * if there is, continue getting the next two operations and make a ForNode
+			 * if not, make a ForEachNode.
+			 * Then check for closed parenthesis.
+			 * Return the ForNode/ForEachNode.
+			 */
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.DELETE);
+		if(optionalToken.isPresent())
+		{
+			/*
+			 * Steps:
+			 * Check for the word token and get the name.
+			 * Then check for an open bracket and loop over the contents when multiple indices are present.
+			 * Return the DeleteNode.
+			 */
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.WHILE);
+		if(optionalToken.isPresent())
+		{
+			/*
+			 * Steps:
+			 * Call ParseOperation to get the condition.
+			 * Call ParseBlock to get statements.
+			 * Create a WhileNode and return it.
+			 */
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.DO);
+		if(optionalToken.isPresent())
+		{
+			/*
+			 * Steps:
+			 * Call ParseBlock to get statements.
+			 * Check for the while keyword.
+			 * Call ParseOperation for the condition.
+			 * Create a DoWhileNode and return it.
+			 */
+		}
+		
+		optionalToken = th.MatchAndRemove(Token.TokenType.RETURN);
+		if(optionalToken.isPresent())
+		{
+			/*
+			 * Steps:
+			 * Call ParseOperation to get returnExpression.
+			 * Create a ReturnNode and return it.
+			 */
+		}
+		
+		// Deals with operation statements (Assignment, increment and decrement, and function calls)
+		else
+		{
+			/*
+			 * Steps:
+			 * Call ParseOperation and check if return is an assignment, increment, decrement, or function call.
+			 * Create its respective Node and return it.
+			 */
+		}
+		
+		return null;
+	}
+	
+	public Optional<Node> ParseFunctionCall()
+	{
+		// Checks if there is a token to check.
+		if(th.MoreTokens())
+		// Checks for a name then open parenthesis, then creates a FunctionCallNode to return.
+			if(th.Peek(0).get().getType() == Token.TokenType.WORD)
+			{
+				// Checks for any extra separators and loops past them before checking for open Parenthesis.
+				int i = 1;
+				while(th.Peek(i).get().getType() == Token.TokenType.SEPARATOR)
+				{
+					i++;
+					// Returns if it reached the end of the list
+					if(th.Peek(i).isEmpty())
+						return Optional.empty();
+				}
+				
+				// Checks for a parenthesis for a potential parameter list.
+				if(th.Peek(i).get().getType() == Token.TokenType.OPENPAREN)
+				{
+					Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
+					
+					// Removes any possible separator after open parenthesis.
+					AcceptSeparators();
+					
+					// Finish creating a FunctionCallNode.
+				}
+			}
+		
+		// Returns nothing if the function call conditions are not met
+		return Optional.empty();
 	}
 	
 	// Set public for testing purposes.
@@ -1075,21 +1250,13 @@ public class Parser
 			OperationNode opNode = new OperationNode(OperationNode.operations.PREDEC, optNode.get());
 			return Optional.of(opNode);
 		}
+		
+		// Will check for a function call and return it if present, otherwise optionalNode is empty.
+		optionalNode = ParseFunctionCall();
+		
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
 		return optionalNode;
 		
-	}
-	
-	
-	
-	
-	
-	private BlockNode ParseBlock()
-	{
-		// Removes any possible separators after BEGIN or END keywords.
-		AcceptSeparators();
-		Optional<Node> Condition = Optional.empty();
-		return new BlockNode(Condition);
 	}
 	
 	// Takes all separators in the list and moves past them

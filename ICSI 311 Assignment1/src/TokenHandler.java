@@ -13,7 +13,7 @@ public class TokenHandler
 	public Optional<Token> Peek(int j)
 	{
 		// Checks to make sure j is not out of bounds.
-		if(j < 0 || j > tokens.size())
+		if(j < 0 || j >= tokens.size())
 			return Optional.empty();
 		
 		// returns Optional instance of the token

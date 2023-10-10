@@ -12,12 +12,12 @@ public class BlockNode extends Node
 		this.Condition = Condition;
 	}
 	
-	public LinkedList<StatementNode> StatementsAccessor()
+	public LinkedList<StatementNode> getStatements()
 	{
 		return Statements;
 	}
 	
-	public Optional<Node> ConditionAccessor()
+	public Optional<Node> getCondition()
 	{
 		return Condition;
 	}

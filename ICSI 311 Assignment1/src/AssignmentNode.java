@@ -1,5 +1,5 @@
 
-public class AssignmentNode extends Node
+public class AssignmentNode extends StatementNode
 {
 	Node target;
 	Node expression;
