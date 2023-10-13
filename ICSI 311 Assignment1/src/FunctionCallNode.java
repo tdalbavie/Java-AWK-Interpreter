@@ -3,30 +3,33 @@ import java.util.Optional;
 
 public class FunctionCallNode extends StatementNode
 {
-	String name;
-	Optional<LinkedList<Node>> parameters;
-	
-	// Called when no parameters are found.
-	public FunctionCallNode(String name)
-	{
-		this.name = name;
-		parameters = Optional.empty();
-	}
+	private String FunctionName;
+	private LinkedList<Node> ParameterNames;
 	
 	// Called when parameters are found.
-	public FunctionCallNode(String name, LinkedList<Node> parameters)
+	public FunctionCallNode(String FunctionName, LinkedList<Node> ParameterNames)
 	{
-		this.name = name;
-		this.parameters = Optional.of(parameters);
+		this.FunctionName = FunctionName;
+		this.ParameterNames = new LinkedList<Node>(ParameterNames);
 	}
 	
 	public String getName()
 	{
-		return name;
+		return FunctionName;
 	}
 	
-	public Optional<LinkedList<Node>> getParameters()
+	public LinkedList<Node> getParameterNames()
 	{
-		return parameters;
+		return ParameterNames;
+	}
+	
+	public String toString()
+	{
+		String contents = "Function name: " + FunctionName + "\n";
+		if (ParameterNames.isEmpty() == false)
+		{
+			contents += "Parameter name(s): " + ParameterNames.toString();
+		}
+		return contents;
 	}
 }

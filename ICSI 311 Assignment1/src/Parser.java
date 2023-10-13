@@ -119,8 +119,8 @@ public class Parser
 		if (optionalToken.isPresent() == false)
 			throw new IllegalArgumentException("Function call parameter was not closed.");
 		
-		// Creates the BlockNode containing the statements.
-		BlockNode block = ParseBlock();
+		// Creates the BlockNode containing the statements (empty optional is put in place since conditional is only used in ParseAction).
+		BlockNode block = ParseBlock(Optional.empty());
 		LinkedList<StatementNode> statements = block.getStatements();
 		
 		// Initializes the FunctionDefinitionNode with all collected data.
@@ -136,18 +136,18 @@ public class Parser
 	{
 		// Initializes as empty in case action has no BEGIN or END.
 		Optional<Token> optionalToken = Optional.empty();
-		// Ensures ParseOperation returns something.
+		// Used to pass potential condition to ParseBlock.
 		Optional<Node> optionalNode = Optional.empty();
 		optionalToken = th.MatchAndRemove(Token.TokenType.BEGIN);
-		boolean parsed = false;
 		
 		if (optionalToken.isPresent() == true)
 		{
 			// Removes any possible separators after BEGIN keyword.
 			AcceptSeparators();
 			
-			node.getStartBlock().add(ParseBlock());
-			parsed = true;
+			// Gives an empty optional as the condition.
+			node.getStartBlock().add(ParseBlock(optionalNode));
+			return true;
 		}
 	
 		
@@ -158,31 +158,33 @@ public class Parser
 			// Removes any possible separators after END keyword.
 			AcceptSeparators();
 			
-			node.getEndBlock().add(ParseBlock());
-			parsed = true;
+			// Gives an empty optional as the condition.
+			node.getEndBlock().add(ParseBlock(optionalNode));
+			return true;
 		}
 		
 		// If action does not have a BEGIN or END.
 		if (optionalToken.isPresent() == false)
 		{
-			//th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop.
+			//th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop in Parser 1.
+			// Checks for a potential condition, if there isn't one it will remain empty and pass it to ParseBlock.
 			optionalNode = ParseOperation();
-			node.getBlock().add(ParseBlock());
-			parsed = true;
+			
+			// Gives a potential condition, otherwise gives an empty.
+			node.getBlock().add(ParseBlock(optionalNode));
+			return true;
 		}
 		
-		if (parsed == true)
-			return true;
-		else
-			return false;
+		// Returns false if nothing is found.
+		return false;
 	}
 	
-	private BlockNode ParseBlock()
+	private BlockNode ParseBlock(Optional<Node> condition)
 	{	
 		Optional<Token> optionalToken = Optional.empty();
-		Optional<Node> Condition = Optional.empty();
-		LinkedList<StatementNode> Statements = new LinkedList<StatementNode>();
-		BlockNode block;
+		
+		Optional<Node> blockCondition = condition;
+		BlockNode block = new BlockNode(blockCondition);
 		
 		// Checks if block has multiple lines.
 		optionalToken = th.MatchAndRemove(Token.TokenType.OPENCURLBRACK);
@@ -194,7 +196,12 @@ public class Parser
 				// Removes any possible separators after END keyword.
 				AcceptSeparators();
 				
-				Statements.add(ParseStatement().get());
+				Optional<StatementNode> optionalStatement = ParseStatement();
+				
+				block.getStatements().add(optionalStatement.get());
+				
+				// While loop needs to be fixed.
+				
 			}while(optionalToken.isPresent());
 			
 			// Makes sure block was closed.
@@ -208,10 +215,10 @@ public class Parser
 			// Removes any possible separators after END keyword.
 			AcceptSeparators();
 			
-			Statements.add(ParseStatement().get());
+			block.getStatements().add(ParseStatement().get());
 		}
 		
-		return new BlockNode(Condition);
+		return block;
 	}
 	
 	private Optional<StatementNode> ParseStatement()
@@ -233,13 +240,115 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.IF);
 		if(optionalToken.isPresent())
 		{
-			/*
-			 * Steps:
-			 * Create an IfNode for the first if statement (call ParseOperation for condition, ParseBlock for statements).
-			 * Make an IfNode current and set it equal to the first statement.
-			 * Check for an else token then an if token and loop though each one with new IfNode until no more else-if/else are found.
-			 * Return the head IfNode.
-			 */
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			optionalToken = th.MatchAndRemove(Token.TokenType.OPENPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No open parenthesis found after if statement.");
+			
+			// Gets the condition of the if statement.
+			Optional<Node> conditionNode = ParseOperation();
+			if(conditionNode.isEmpty())
+				throw new IllegalArgumentException("No condition given in if statement.");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No closed parenthesis found after if statement.");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			BlockNode statements = ParseBlock(Optional.empty());
+			
+			IfNode ifNode = new IfNode(conditionNode.get(), statements);
+			
+			// Checks if there is an else statement following.
+			optionalToken = th.MatchAndRemove(Token.TokenType.ELSE);
+			if(optionalToken.isPresent())
+			{
+				// Removes any possible separator.
+				AcceptSeparators();
+				
+				// Checks if it is an else-if statement.
+				optionalToken = th.MatchAndRemove(Token.TokenType.IF);
+				if(optionalToken.isPresent())
+				{
+					// Creates a temporary if node to hold current position of the chain (basically a linked list).
+					IfNode current = ifNode;
+					
+					// Loops until all else-if/else statements are processed.
+					while(optionalToken.isPresent())
+					{
+						// Removes any possible separator.
+						AcceptSeparators();
+						
+						optionalToken = th.MatchAndRemove(Token.TokenType.OPENPAREN);
+						if(optionalToken.isEmpty())
+							throw new IllegalArgumentException("No open parenthesis found after else if statement.");
+						
+						// Gets the condition of the if statement.
+						conditionNode = ParseOperation();
+						if(conditionNode.isEmpty())
+							throw new IllegalArgumentException("No condition given in else if statement.");
+						
+						// Removes any possible separator.
+						AcceptSeparators();
+						
+						optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+						if(optionalToken.isEmpty())
+							throw new IllegalArgumentException("No closed parenthesis found after else if statement.");
+						
+						// Removes any possible separator.
+						AcceptSeparators();
+						
+						statements = ParseBlock(Optional.empty());
+						
+						// Adds the next else-if to the chain.
+						current.addIfElse(new IfNode(conditionNode.get(), statements));
+						// Sets current to the next IfNode in the chain.
+						current = current.getNextIf().get();
+						
+						// Checks if there is another else statement.
+						optionalToken = th.MatchAndRemove(Token.TokenType.ELSE);
+						if(optionalToken.isPresent())
+						{
+							// Removes any possible separator.
+							AcceptSeparators();
+							
+							// Checks for the if token. 
+							optionalToken = th.MatchAndRemove(Token.TokenType.IF);
+							// If it is empty, it will process as an else and end the loop, otherwise it will restart the loop.
+							if(optionalToken.isEmpty())
+							{	
+								// Only gets the statements as an else statement has no condition.
+								statements = ParseBlock(Optional.empty());
+								// Adds the else node to the end of the chain.
+								current.addIfElse(new IfNode(statements));
+								break; // exits the loop since there is no reason to continue.
+							}
+						}
+						else
+							break; // exits the loop since there is no reason to continue.
+					}
+				}
+				
+				// Processes the else statement if no if token was found.
+				else
+				{
+					// Only gets the statements as an else statement has no condition.
+					statements = ParseBlock(Optional.empty());
+					
+					// Adds the else node as the only next node in the IfNode (only an if else statement if it gets here).
+					ifNode.addIfElse(new IfNode(statements));
+				}
+			}
+			
+			// Returns the head of the if statements.
+			return Optional.of(ifNode);
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.FOR);
@@ -253,6 +362,10 @@ public class Parser
 			 * Then check for closed parenthesis.
 			 * Return the ForNode/ForEachNode.
 			 */
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.DELETE);
@@ -264,6 +377,10 @@ public class Parser
 			 * Then check for an open bracket and loop over the contents when multiple indices are present.
 			 * Return the DeleteNode.
 			 */
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.WHILE);
@@ -275,6 +392,10 @@ public class Parser
 			 * Call ParseBlock to get statements.
 			 * Create a WhileNode and return it.
 			 */
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.DO);
@@ -287,6 +408,10 @@ public class Parser
 			 * Call ParseOperation for the condition.
 			 * Create a DoWhileNode and return it.
 			 */
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.RETURN);
@@ -297,6 +422,10 @@ public class Parser
 			 * Call ParseOperation to get returnExpression.
 			 * Create a ReturnNode and return it.
 			 */
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			
 		}
 		
 		// Deals with operation statements (Assignment, increment and decrement, and function calls)
@@ -307,9 +436,17 @@ public class Parser
 			 * Call ParseOperation and check if return is an assignment, increment, decrement, or function call.
 			 * Create its respective Node and return it.
 			 */
+			Optional<Node> optionalNode = ParseOperation();
+			
+			if(optionalNode.get() instanceof FunctionCallNode)
+			{
+				FunctionCallNode FuncCallNode = (FunctionCallNode) optionalNode.get();
+				return Optional.of(FuncCallNode);
+			}
 		}
 		
-		return null;
+		// Returns empty when there is nothing in the block.
+		return Optional.empty();
 	}
 	
 	public Optional<Node> ParseFunctionCall()
@@ -333,11 +470,71 @@ public class Parser
 				if(th.Peek(i).get().getType() == Token.TokenType.OPENPAREN)
 				{
 					Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
+					// Saves the function name.
+					String functionName = optionalToken.get().getValue();
+					LinkedList<Node> parameters = new LinkedList<Node>();
+					Optional<Node> parameterOperations;
 					
 					// Removes any possible separator after open parenthesis.
 					AcceptSeparators();
 					
-					// Finish creating a FunctionCallNode.
+					// Already checked for an open parenthesis so we can just remove it.
+					th.MatchAndRemove(Token.TokenType.OPENPAREN);
+					
+					// Removes any possible separator.
+					AcceptSeparators();
+					
+					// Gets the first function parameter.
+					parameterOperations = ParseOperation();
+					
+					if(parameterOperations.isPresent())
+					{
+						// Removes any possible separator.
+						AcceptSeparators();
+						
+						// Adds the first parameter into the linked list.
+						parameters.add(parameterOperations.get());
+						
+						// Checks for more parameters.
+						optionalToken = th.MatchAndRemove(Token.TokenType.COMMA);
+						if(optionalToken.isPresent())
+						{	
+							// Loops until the full list is found.
+							while(optionalToken.isPresent())
+							{
+								// Removes any possible separator.
+								AcceptSeparators();
+								
+								// Gets the next function parameter.
+								parameterOperations = ParseOperation();
+								
+								// Adds the next parameter, throws exception if none was found.
+								if(optionalToken.isPresent())
+								{
+									parameters.add(parameterOperations.get());
+									
+									// Removes any possible separator.
+									AcceptSeparators();
+									
+									// Checks for more parameters.
+									optionalToken = th.MatchAndRemove(Token.TokenType.COMMA);
+								}
+								else
+									throw new IllegalArgumentException("No more parameters found after comma in function call: " + functionName);
+							}
+						}
+					}
+					
+					// Removes any possible separator.
+					AcceptSeparators();
+					
+					// Makes sure parameter list was closed.
+					optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+					if(optionalToken.isEmpty())
+						throw new IllegalArgumentException("No closed parenthesis was found in function call: " + functionName);
+					
+					// Returns the function call node after the name and parameter names have been collected.
+					return Optional.of(new FunctionCallNode(functionName, parameters));
 				}
 			}
 		
@@ -356,7 +553,7 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseTernary();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 
 		// A flag to check if what we are working with is a LValue.
@@ -406,7 +603,7 @@ public class Parser
 					if(optionalToken.isEmpty())
 						return optionalNode;
 					
-					// Removes any possible separator after open parenthesis.
+					// Removes any possible separator.
 					AcceptSeparators();
 					
 					// Gets the right expression.
@@ -414,7 +611,7 @@ public class Parser
 					
 					if(rightNode.isPresent())
 					{
-						// Removes any possible separator after open parenthesis.
+						// Removes any possible separator.
 						AcceptSeparators();
 						
 						// Creates the AssignmentNode with correct operation (if any) depending on assignment type.
@@ -619,7 +816,7 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseOr();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		do
 		{
@@ -628,7 +825,7 @@ public class Parser
 			if (optionalToken.isEmpty())
 				return optionalNode;
 			
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> trueCase = ParseTernary();
@@ -641,7 +838,7 @@ public class Parser
 				if (optionalToken.isEmpty())
 					throw new IllegalArgumentException("No colon was found in ternary expression");
 				
-				// Removes any possible separator after open parenthesis.
+				// Removes any possible separator.
 				AcceptSeparators();
 				
 				Optional<Node> falseCase = ParseTernary();
@@ -662,13 +859,13 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseAnd();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.OR);
 		if (optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			// Holds the second expression.
@@ -688,14 +885,15 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseArrayMembership();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.AND);
 		if (optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
+			
 			// Holds the second expression.
 			Optional<Node> optNode = ParseAnd();
 			
@@ -714,13 +912,13 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseMatch();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.IN);
 		if (optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			// Calls ParseLValue to get a variable.
@@ -746,14 +944,15 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseBooleanCompare();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.MATCH);
 		if (optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
+			
 			// Holds the second expression.
 			Optional<Node> optNode = ParseMatch();
 			if(optNode.isPresent())
@@ -765,7 +964,9 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.NOTMATCH);
 		if (optionalToken.isPresent())
 		{
+			// Removes any possible separator.
 			AcceptSeparators();
+			
 			// Holds the second expression.
 			Optional<Node> optNode = ParseMatch();
 			if(optNode.isPresent())
@@ -783,14 +984,14 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseConcatenation();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		// Checks each possible Boolean compare and returns one if it is found.
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.GREATEROREQUAL);
 		if(optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
@@ -803,7 +1004,7 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.GREATERTHAN);
 		if(optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
@@ -816,7 +1017,7 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.EQUALS);
 		if(optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
@@ -829,7 +1030,7 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.NOTEQUALS);
 		if(optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
@@ -842,7 +1043,7 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.LESSOREQUAL);
 		if(optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
@@ -855,7 +1056,7 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.LESSTHAN);
 		if(optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			Optional<Node> optNode = ParseBooleanCompare();
@@ -874,7 +1075,7 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseExpression();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		// Checks if the right expression is an LValue to concatenate the string.
@@ -904,7 +1105,7 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseTerm();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		do
@@ -917,7 +1118,7 @@ public class Parser
 			if(optionalToken.isEmpty())
 				return optionalNode;
 			
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			// Gets right expression.
@@ -943,7 +1144,7 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseFactor();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		do
@@ -959,7 +1160,7 @@ public class Parser
 			if(optionalToken.isEmpty())
 				return optionalNode;
 			
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			// Gets right expression.
@@ -996,7 +1197,7 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParsePostIncrementAndDecrement();
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		do
@@ -1007,7 +1208,7 @@ public class Parser
 			if(optionalToken.isEmpty())
 				return optionalNode;
 			
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			// Gets right expression.
@@ -1029,14 +1230,14 @@ public class Parser
 		
 		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
 
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		// Checks if a post increment was found.
 		optionalToken = th.MatchAndRemove(Token.TokenType.INCREMENT);
 		if (optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			OperationNode opNode = new OperationNode(OperationNode.operations.POSTINC, optionalNode.get());
@@ -1047,7 +1248,7 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.DECREMENT);
 		if (optionalToken.isPresent())
 		{
-			// Removes any possible separator after open parenthesis.
+			// Removes any possible separator.
 			AcceptSeparators();
 			
 			OperationNode opNode = new OperationNode(OperationNode.operations.POSTDEC, optionalNode.get());
@@ -1063,7 +1264,7 @@ public class Parser
 		Optional<Node> optionalNode = ParseBottomLevel(); // Ensures ParseOperation/ParseBottomLevel returns something.
 		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
 		
-		// Removes any possible separator after open parenthesis.
+		// Removes any possible separator.
 		AcceptSeparators();
 		
 		// Returns optionalNode if it a Constant for concatenation reasons.
@@ -1074,10 +1275,7 @@ public class Parser
 		// Checks for field reference.
 		optionalToken = th.MatchAndRemove(Token.TokenType.DOLLAR);
 		if (optionalToken.isPresent())
-		{
-			// Removes any possible separator after dollar sign.
-			AcceptSeparators();
-			
+		{	
 			Optional<Node> optNode = ParseLValue();
 			if (optNode.isEmpty())
 				throw new IllegalArgumentException("Unable to find operation after dollar.");
@@ -1168,6 +1366,7 @@ public class Parser
 			
 			// Removes any possible separator after operation is parsed.
 			AcceptSeparators();
+			
 			// Makes sure there is a close parenthesis.
 			optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
 			if (optionalToken.isEmpty())

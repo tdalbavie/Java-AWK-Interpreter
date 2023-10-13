@@ -16,11 +16,11 @@ public class IfNode extends StatementNode
 	}
 	
 	// Used by if/else-if statements.
-	public IfNode(Node condition, BlockNode statements, IfNode next)
+	public IfNode(Node condition, BlockNode statements)
 	{
 		this.condition = Optional.of(condition);
 		this.statements = statements;
-		this.next = Optional.of(next);
+		this.next = Optional.of(null);
 	}
 	
 	public Optional<Node> getCondition()
@@ -28,7 +28,7 @@ public class IfNode extends StatementNode
 		return condition;
 	}
 	
-	public BlockNode getStatementss()
+	public BlockNode getStatements()
 	{
 		return statements;
 	}
@@ -36,5 +36,11 @@ public class IfNode extends StatementNode
 	public Optional<IfNode> getNextIf()
 	{
 		return next;
+	}
+	
+	// Sets the next IfNode similar to the add method of a linked list.
+	public void addIfElse(IfNode next)
+	{
+		this.next = Optional.of(next);
 	}
 }

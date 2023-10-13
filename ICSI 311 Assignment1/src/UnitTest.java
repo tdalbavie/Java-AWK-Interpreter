@@ -5,6 +5,29 @@ import org.junit.Test;
 public class UnitTest 
 {
 	@Test
+	public void ifStatementTest()
+	{
+		Lexer lexer = new Lexer("{\r\n"
+				+ "    if ($1 == \"A\") {\r\n"
+				+ "        printer(\"The input is A.\")\r\n"
+				+ "    } else if ($1 == \"B\") {\r\n"
+				+ "        printer(\"The input is B.\")\r\n"
+				+ "    } else if ($1 == \"C\") {\r\n"
+				+ "        printer(\"The input is C.\")\r\n"
+				+ "    } else {\r\n"
+				+ "        printer(\"The input is not A, B, or C.\")\r\n"
+				+ "    }\r\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    int i = 1;
+	}
+	
+	
+	// All tests past this point are for parser 3
+	@Test
 	public void AssignmentTest()
 	{
 		Lexer lexer = new Lexer("a += b -= 5");
