@@ -24,13 +24,18 @@ public class ForNode extends StatementNode
 		return condition;
 	}
 	
-	public Node increment()
+	public Node getIncrement()
 	{
 		return increment;
 	}
 	
-	public BlockNode statements()
+	public BlockNode getStatements()
 	{
 		return statements;
+	}
+	
+	public String toString()
+	{
+		return null;
 	}
 }

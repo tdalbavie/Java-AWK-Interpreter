@@ -12,4 +12,9 @@ public class ReturnNode extends StatementNode
 	{
 		return returnExpression;
 	}
+	
+	public String toString()
+	{
+		return null;
+	}
 }

@@ -19,4 +19,9 @@ public class ForEachNode extends StatementNode
 	{
 		return statements;
 	}
+	
+	public String toString()
+	{
+		return null;
+	}
 }

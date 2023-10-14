@@ -19,4 +19,9 @@ public class WhileNode extends StatementNode
 	{
 		return statements;
 	}
+	
+	public String toString()
+	{
+		return null;
+	}
 }

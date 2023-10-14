@@ -90,13 +90,32 @@ public class UnitTest
 		Lexer lexer = new Lexer("{\r\n"
 				+ "    for (i = 1; i <= 5; i++) {\r\n"
 				+ "        printer (\"Iteration\", i)\r\n"
+				+ "        i++\r\n"
 				+ "    }\r\n"
 				+ "}");
 		LinkedList<Token> tokens = lexer.Lex();
 	    Parser parser = new Parser(tokens);
 	    ProgramNode node = parser.Parse();
 	    
-	    int i = 1;
+	    BlockNode block = node.getBlock().get(0);
+	    ForNode forNode = (ForNode) block.getStatements().get(0);
+	    // Assume AssignmentNode contains the first condition (i = 1).
+	    Assert.assertTrue(forNode.getInitialization() instanceof AssignmentNode);
+	    // Assume OperationNode contains the second condition (i <= 5).
+	    Assert.assertTrue(forNode.getCondition() instanceof OperationNode);
+	    // Assume AssignmentNode contains the third condition (i++).
+	    Assert.assertTrue(forNode.getIncrement() instanceof AssignmentNode);
+	    
+	    BlockNode forBlock = forNode.getStatements();
+	    FunctionCallNode fcNode = (FunctionCallNode) forBlock.getStatements().get(0);
+	    Assert.assertEquals(fcNode.getName(), "printer");
+	    // Assume ConstantNode contains the first parameter of function printer ("Iteration")
+	    Assert.assertTrue(fcNode.getParameterNames().get(0) instanceof ConstantNode);
+	    // Assume VariableReferenceNode contains the second parameter of function printer (i)
+	    Assert.assertTrue(fcNode.getParameterNames().get(1) instanceof VariableReferenceNode);
+	    // Assume AssignmentNode contains the second statement in the if block (i++)
+	    Assert.assertTrue(forBlock.getStatements().get(1) instanceof AssignmentNode);
+	    		
 	}
 	
 	@Test

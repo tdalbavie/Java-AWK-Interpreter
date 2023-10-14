@@ -28,4 +28,9 @@ public class DeleteNode extends StatementNode
 	{
 		return Index;
 	}
+	
+	public String toString()
+	{
+		return null;
+	}
 }

@@ -135,8 +135,8 @@ public class Parser
 		Optional<Token> optionalToken = Optional.empty();
 		// Used to pass potential condition to ParseBlock.
 		Optional<Node> optionalNode = Optional.empty();
-		optionalToken = th.MatchAndRemove(Token.TokenType.BEGIN);
 		
+		optionalToken = th.MatchAndRemove(Token.TokenType.BEGIN);
 		if (optionalToken.isPresent() == true)
 		{
 			// Removes any possible separators after BEGIN keyword.
@@ -147,9 +147,7 @@ public class Parser
 			return true;
 		}
 	
-		
 		optionalToken = th.MatchAndRemove(Token.TokenType.END);
-		
 		if (optionalToken.isPresent() == true)
 		{
 			// Removes any possible separators after END keyword.
@@ -166,6 +164,9 @@ public class Parser
 			//th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop in Parser 1.
 			// Checks for a potential condition, if there isn't one it will remain empty and pass it to ParseBlock.
 			optionalNode = ParseOperation();
+			
+			// Removes any possible separators.
+			AcceptSeparators();
 			
 			// Handles edge case of an empty token list.
 			if(th.MoreTokens() == true)
@@ -196,7 +197,7 @@ public class Parser
 			// Loops until all statements have been parsed.
 			do
 			{
-				// Removes any possible separators after END keyword.
+				// Removes any possible separators.
 				AcceptSeparators();
 				
 				Optional<StatementNode> optionalStatement = ParseStatement();
@@ -422,7 +423,7 @@ public class Parser
 					AcceptSeparators();
 					
 					// Gets the statements of the for loop if any.
-					BlockNode statements = new BlockNode(Optional.empty());
+					BlockNode statements = ParseBlock(Optional.empty());
 					
 					// Returns the initialization, condition, increment, and statements in a ForNode.
 					return Optional.of(new ForNode(conditionNode.get(), secondConditionNode.get(), thirdConditionNode.get(), statements));
@@ -458,12 +459,6 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.DELETE);
 		if(optionalToken.isPresent())
 		{
-			/*
-			 * Steps:
-			 * Check for the word token and get the name.
-			 * Then check for an open bracket and loop over the contents when multiple indices are present.
-			 * Return the DeleteNode.
-			 */
 			// Removes any possible separator.
 			AcceptSeparators();
 			
@@ -758,9 +753,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseTernary();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 
 		// A flag to check if what we are working with is a LValue.
 		boolean flag = false;
@@ -817,9 +809,6 @@ public class Parser
 					
 					if(rightNode.isPresent())
 					{
-						// Removes any possible separator.
-						AcceptSeparators();
-						
 						// Creates the AssignmentNode with correct operation (if any) depending on assignment type.
 						if(optionalToken.get().getType() == Token.TokenType.EXPONENTEQUALS)
 						{
@@ -1022,8 +1011,6 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseOr();
 		
-		// Removes any possible separator.
-		AcceptSeparators();
 		do
 		{
 			Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.QUESTIONMARK); // Checks next token.
@@ -1065,9 +1052,6 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseAnd();
 		
-		// Removes any possible separator.
-		AcceptSeparators();
-		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.OR);
 		if (optionalToken.isPresent())
 		{
@@ -1090,9 +1074,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseArrayMembership();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.AND);
 		if (optionalToken.isPresent())
@@ -1117,9 +1098,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseMatch();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.IN);
 		if (optionalToken.isPresent())
@@ -1149,9 +1127,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseBooleanCompare();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.MATCH);
 		if (optionalToken.isPresent())
@@ -1189,9 +1164,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseConcatenation();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		// Checks each possible Boolean compare and returns one if it is found.
 		Optional<Token> optionalToken = th.MatchAndRemove(Token.TokenType.GREATEROREQUAL);
@@ -1281,9 +1253,6 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseExpression();
 		
-		// Removes any possible separator.
-		AcceptSeparators();
-		
 		// Checks if the right expression is an LValue to concatenate the string.
 		Optional<Node> optNode = ParseLValue();
 		if (optNode.isPresent())
@@ -1310,9 +1279,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseTerm();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		do
 		{
@@ -1349,9 +1315,6 @@ public class Parser
 	{
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParseFactor();
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		do
 		{
@@ -1403,9 +1366,6 @@ public class Parser
 		// Pushes it's way down the chain to the bottom and if any returns were found, stores it in optionalNode.
 		Optional<Node> optionalNode = ParsePostIncrementAndDecrement();
 		
-		// Removes any possible separator.
-		AcceptSeparators();
-		
 		do
 		{
 			// Ensures there is an exponent operation.
@@ -1435,9 +1395,6 @@ public class Parser
 		Optional<Node> optionalNode = ParseLValue();
 		
 		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
-
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		// Checks if a post increment was found.
 		optionalToken = th.MatchAndRemove(Token.TokenType.INCREMENT);
@@ -1473,9 +1430,6 @@ public class Parser
 	{
 		Optional<Node> optionalNode = ParseBottomLevel(); // Ensures ParseOperation/ParseBottomLevel returns something.
 		Optional<Token> optionalToken = Optional.empty(); // Checks next token.
-		
-		// Removes any possible separator.
-		AcceptSeparators();
 		
 		// Returns optionalNode if it a Constant for concatenation reasons.
 		if (optionalNode.isPresent())
