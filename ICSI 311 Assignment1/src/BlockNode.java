@@ -3,6 +3,7 @@ import java.util.Optional;
 
 public class BlockNode extends Node
 {
+	// Will be null if a block is empty.
 	private LinkedList<StatementNode> Statements;
 	private Optional<Node> Condition;
 	

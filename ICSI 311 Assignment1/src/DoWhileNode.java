@@ -1,8 +1,8 @@
 
 public class DoWhileNode extends StatementNode
 {
-	Node condition;
-	BlockNode statements;
+	private Node condition;
+	private BlockNode statements;
 	
 	public DoWhileNode(Node condition, BlockNode statements)
 	{

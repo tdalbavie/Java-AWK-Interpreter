@@ -1,7 +1,7 @@
 
 public class ConstantNode extends Node
 {
-	String value;
+	private String value;
 	
 	public ConstantNode(String value)
 	{

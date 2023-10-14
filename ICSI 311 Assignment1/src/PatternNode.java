@@ -1,7 +1,7 @@
 
 public class PatternNode extends Node
 {
-	String pattern;
+	private String pattern;
 	
 	public PatternNode(String pattern)
 	{

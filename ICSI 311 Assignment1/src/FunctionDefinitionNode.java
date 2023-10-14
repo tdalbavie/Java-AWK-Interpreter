@@ -13,17 +13,17 @@ public class FunctionDefinitionNode extends Node
 		this.Statements = new LinkedList<StatementNode>(Statements);
 	}
 	
-	public String FunctionNameAccessor()
+	public String getFunctionName()
 	{
 		return FunctionName;
 	}
 	
-	public LinkedList<String> ParameterNamesAccessor()
+	public LinkedList<String> getParameterNames()
 	{
 		return ParameterNames;
 	}
 	
-	public LinkedList<StatementNode> StatementsAccessor()
+	public LinkedList<StatementNode> getStatements()
 	{
 		return Statements;
 	}

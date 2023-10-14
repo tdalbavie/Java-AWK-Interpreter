@@ -1,8 +1,8 @@
 
 public class WhileNode extends StatementNode
 {
-	Node condition;
-	BlockNode statements;
+	private Node condition;
+	private BlockNode statements;
 	
 	public WhileNode(Node condition, BlockNode statements)
 	{

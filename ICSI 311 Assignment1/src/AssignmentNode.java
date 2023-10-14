@@ -1,8 +1,8 @@
 
 public class AssignmentNode extends StatementNode
 {
-	Node target;
-	Node expression;
+	private Node target;
+	private Node expression;
 	
 	public AssignmentNode(Node target, Node expression)
 	{

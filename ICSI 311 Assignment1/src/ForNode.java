@@ -1,10 +1,10 @@
 
 public class ForNode extends StatementNode
 {
-	Node initialization;
-	Node condition;
-	Node increment;
-	BlockNode statements;
+	private Node initialization;
+	private Node condition;
+	private Node increment;
+	private BlockNode statements;
 	
 	public ForNode(Node initialization, Node condition, Node increment, BlockNode statements)
 	{

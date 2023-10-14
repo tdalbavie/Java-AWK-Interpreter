@@ -1,8 +1,8 @@
 
 public class ForEachNode extends StatementNode
 {
-	Node condition; // Can only contain array membership condition (var in array).
-	BlockNode statements;
+	private Node condition; // Can only contain array membership condition (var in array).
+	private BlockNode statements;
 	
 	public ForEachNode(Node condition, BlockNode statements)
 	{

@@ -5,8 +5,35 @@ import org.junit.Test;
 public class UnitTest 
 {
 	@Test
+	public void BreakTest()
+	{
+		Lexer lexer = new Lexer("break\r\n");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode block = node.getBlock().get(0);
+	    // BreakNode is an empty class so it only needs to be present in the list.
+	    Assert.assertTrue(block.getStatements().get(0) instanceof BreakNode);
+	}
+	
+	@Test
+	public void ContinueTest()
+	{
+		Lexer lexer = new Lexer("{continue\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode block = node.getBlock().get(0);
+	    // ContinueNode is an empty class so it only needs to be present in the list.
+	    Assert.assertTrue(block.getStatements().get(0) instanceof ContinueNode);
+	}
+	
+	@Test
 	public void ifStatementTest()
 	{
+		// Used function named printer since print function and other system functions are created in Interpreter 1.
 		Lexer lexer = new Lexer("{\r\n"
 				+ "    if ($1 == \"A\") {\r\n"
 				+ "        printer(\"The input is A.\")\r\n"
@@ -22,9 +49,173 @@ public class UnitTest
 	    Parser parser = new Parser(tokens);
 	    ProgramNode node = parser.Parse();
 	    
+	    BlockNode block = node.getBlock().get(0);
+	    
+	    // Checks the first if statement
+	    IfNode ifNode = (IfNode) block.getStatements().get(0);
+	    // Assume operation node contains ($1 == A)
+	    Assert.assertTrue(ifNode.getCondition().isPresent());
+	    Assert.assertTrue(ifNode.getCondition().get() instanceof OperationNode);
+	    // I will only check statements once for brevity, assume the rest are true.
+	    BlockNode ifBlock = (BlockNode) ifNode.getStatements();
+	    FunctionCallNode ifFCN = (FunctionCallNode) ifBlock.getStatements().get(0);
+	    Assert.assertEquals(ifFCN.getName(), "printer");
+	    ConstantNode ifConstNode = (ConstantNode) ifFCN.getParameterNames().get(0);
+	    Assert.assertEquals(ifConstNode.getConstantValue(), "The input is A.");
+	    
+	    // Checks second if statement.
+	    IfNode ifElse1Node = ifNode.getNextIf();
+	    Assert.assertTrue(ifElse1Node.getCondition().isPresent());
+	    // Assume this shows that the linked list in the block node contains a proper FunctionCallNode.
+	    Assert.assertTrue(ifElse1Node.getStatements().getStatements().isEmpty() == false);
+	    
+	    // Checks third if statement.
+	    IfNode ifElse2Node = ifElse1Node.getNextIf();
+	    Assert.assertTrue(ifElse2Node.getCondition().isPresent());
+	    // Assume this shows that the linked list in the block node contains a proper FunctionCallNode.
+	    Assert.assertTrue(ifElse2Node.getStatements().getStatements().isEmpty() == false);
+	    
+	    IfNode elseNode = ifElse2Node.getNextIf();
+	    // Should have no condition as it is an else statement.
+	    Assert.assertTrue(elseNode.getCondition().isEmpty());
+	    // Assume this shows that the linked list in the block node contains a proper FunctionCallNode.
+	    Assert.assertTrue(elseNode.getStatements().getStatements().isEmpty() == false);
+	}
+	
+
+	
+	@Test
+	public void ForTest()
+	{
+		Lexer lexer = new Lexer("{\r\n"
+				+ "    for (i = 1; i <= 5; i++) {\r\n"
+				+ "        printer (\"Iteration\", i)\r\n"
+				+ "    }\r\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
 	    int i = 1;
 	}
 	
+	@Test
+	public void ForEachTest()
+	{
+		Lexer lexer = new Lexer("{\r\n"
+				+ "    for (key in myArray) {\r\n"
+				+ "        printer (\"Key:\", key, \"Value:\", myArray[key])\r\n"
+				+ "    }}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode block = node.getBlock().get(0);
+	    ForEachNode feNode = (ForEachNode) block.getStatements().get(0);
+	    
+	    // Assume OperationNode contains (key in myArray).
+	    Assert.assertTrue(feNode.getArrayMembershipCondition() instanceof OperationNode);
+	    BlockNode feBlock = feNode.getStatements();
+	    FunctionCallNode fcNode = (FunctionCallNode) feBlock.getStatements().get(0);
+	    Assert.assertEquals(fcNode.getName(), "printer");
+	    // Assume this contains the first parameter ("Key: ").
+	    Assert.assertTrue(fcNode.getParameterNames().get(0) instanceof ConstantNode);
+	    // Assume this contains the second parameter (key).
+	    Assert.assertTrue(fcNode.getParameterNames().get(1) instanceof VariableReferenceNode);
+	    // Assume this contains the third parameter ("Value: ).
+	    Assert.assertTrue(fcNode.getParameterNames().get(2) instanceof ConstantNode);
+	    // Assume this contains the fourth parameter (myArray[key]).
+	    Assert.assertTrue(fcNode.getParameterNames().get(3) instanceof VariableReferenceNode);
+	}
+	
+	@Test
+	public void DeleteTest()
+	{
+		Lexer lexer = new Lexer("{delete myArray[a, b]}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode block = node.getBlock().get(0);
+	    DeleteNode delNode = (DeleteNode) block.getStatements().get(0);
+	    
+	    Assert.assertEquals(delNode.getArrayName(), "myArray");
+	    VariableReferenceNode vrNode1 = (VariableReferenceNode) delNode.getIndex().get(0);
+	    VariableReferenceNode vrNode2 = (VariableReferenceNode) delNode.getIndex().get(1);
+	    
+	    Assert.assertEquals(vrNode1.getName(), "a");
+	    Assert.assertEquals(vrNode2.getName(), "b");
+	}
+	
+	@Test
+	public void WhileTest()
+	{
+		Lexer lexer = new Lexer("BEGIN {\r\n"
+				+ "    i = 1\r\n"
+				+ "    while (i <= 5) {\r\n"
+				+ "        i++\r\n"
+				+ "    }\r\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode startBlock = node.getStartBlock().get(0);
+	    // Assume this AssignmentNode contains (i = 1).
+	    Assert.assertTrue(startBlock.getStatements().get(0) instanceof AssignmentNode);
+	    
+	    WhileNode whileNode = (WhileNode) startBlock.getStatements().get(1);
+	    // Assume OperationNode contains the operation of while (i <= 5).
+	    Assert.assertTrue(whileNode.getCondition() instanceof OperationNode);
+	    BlockNode whileBlock = whileNode.getStatements();
+	    // Assume this AssignmentNode contains (i++).
+	    Assert.assertTrue(whileBlock.getStatements().get(0) instanceof AssignmentNode);
+	}
+	
+	@Test
+	public void DoWhileTest()
+	{
+		Lexer lexer = new Lexer("BEGIN {\r\n"
+				+ "    i = 1\r\n"
+				+ "    do {\r\n"
+				+ "        i++\r\n"
+				+ "    } while (i <= 5)\r\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode startBlock = node.getStartBlock().get(0);
+	    // Assume this AssignmentNode contains (i = 1).
+	    Assert.assertTrue(startBlock.getStatements().get(0) instanceof AssignmentNode);
+	    
+	    DoWhileNode whileNode = (DoWhileNode) startBlock.getStatements().get(1);
+	    // Assume OperationNode contains the operation of while (i <= 5).
+	    Assert.assertTrue(whileNode.getCondition() instanceof OperationNode);
+	    BlockNode whileBlock = whileNode.getStatements();
+	    // Assume this AssignmentNode contains (i++).
+	    Assert.assertTrue(whileBlock.getStatements().get(0) instanceof AssignmentNode);
+	}
+	
+	@Test
+	public void ReturnTest()
+	{
+		Lexer lexer = new Lexer("function square(num1, num2) {\r\n"
+				+ "    return num1 * num2\r\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    FunctionDefinitionNode funcDefNode = node.getFunctionDefinitionNode().getFirst();
+	    Assert.assertEquals(funcDefNode.getFunctionName(), "square");
+	    Assert.assertEquals(funcDefNode.getParameterNames().get(0), "num1");
+	    Assert.assertEquals(funcDefNode.getParameterNames().get(1), "num2");
+	    
+	    // We will assume the operation node is correct which I have verified in the debugger to contain (num1 * num2).
+	    ReturnNode returnNode = (ReturnNode) funcDefNode.getStatements().get(0);
+	    Assert.assertTrue(returnNode.getReturnExpression() instanceof OperationNode);
+	}
 	
 	// All tests past this point are for parser 3
 	@Test
@@ -290,18 +481,21 @@ public class UnitTest
 		LinkedList<Token> tokens = lexer.Lex();
 	    Parser parser = new Parser(tokens);
 	    
-	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    AssignmentNode asNode = (AssignmentNode) parser.ParseOperation().get();
 	    
-	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.POSTINC);
+	    OperationNode incrementOpNode = (OperationNode) asNode.getExpression();
+	    Assert.assertEquals(incrementOpNode.getOperation(), OperationNode.operations.POSTINC);
+	    // Only checks if there is an assignment node as it is a copy of what is in target of asNode.
+	    Assert.assertTrue(incrementOpNode.getLeftNode() instanceof AssignmentNode);
 	    
-	    OperationNode nestedOpNode = (OperationNode) opNode.getLeftNode();
+	    AssignmentNode nestedAsNode = (AssignmentNode) asNode.getTarget();
+	    OperationNode decrementOpNode = (OperationNode) nestedAsNode.getExpression();
+	    Assert.assertEquals(decrementOpNode.getOperation(), OperationNode.operations.POSTDEC);
+	    VariableReferenceNode decrementVrNode = (VariableReferenceNode) decrementOpNode.getLeftNode();
+	    Assert.assertEquals(decrementVrNode.getName(), "a");
 	    
-	    Assert.assertEquals(nestedOpNode.getOperation(), OperationNode.operations.POSTDEC);
-	    
-	    VariableReferenceNode vrNode = (VariableReferenceNode) nestedOpNode.getLeftNode();
-	    
-	    Assert.assertEquals(vrNode.getName(), "a");
-	    
+	    VariableReferenceNode nestedVrNode = (VariableReferenceNode) nestedAsNode.getTarget();
+	    Assert.assertEquals(nestedVrNode.getName(), "a");
 	}
 	
 	// All tests past this point are for parser 2
@@ -313,9 +507,13 @@ public class UnitTest
 	    Parser parser = new Parser(tokens);
 	    
 	    // Breaks apart the tree to test the contents in each node.
-	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
-	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
+	    AssignmentNode asNode = (AssignmentNode) parser.ParseOperation().get();
 	    
+	    VariableReferenceNode assignmentVrNode = (VariableReferenceNode) asNode.getTarget();
+	    Assert.assertEquals(assignmentVrNode.getName(), "a");
+	    
+	    OperationNode opNode = (OperationNode) asNode.getExpression();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
 	    VariableReferenceNode vrNode = (VariableReferenceNode) opNode.getLeftNode();
 	    Assert.assertEquals(vrNode.getName(), "a");
 	    
@@ -329,12 +527,17 @@ public class UnitTest
 	    Parser parser = new Parser(tokens);
 	    
 	    // Breaks apart the tree to test the contents in each node.
-	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
-	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
+	    AssignmentNode asNode = (AssignmentNode) parser.ParseOperation().get();
 	    
+	    OperationNode assignmentOpNode = (OperationNode) asNode.getTarget();
+	    Assert.assertEquals(assignmentOpNode.getOperation(), OperationNode.operations.DOLLAR);
+	    VariableReferenceNode assignmentVrNode = (VariableReferenceNode) assignmentOpNode.getLeftNode();
+	    Assert.assertEquals(assignmentVrNode.getName(), "b");
+	    
+	    OperationNode opNode = (OperationNode) asNode.getExpression();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
 	    OperationNode nestedOpNode = (OperationNode) opNode.getLeftNode();
 	    Assert.assertEquals(nestedOpNode.getOperation(), OperationNode.operations.DOLLAR);
-	    
 	    VariableReferenceNode vrNode = (VariableReferenceNode) nestedOpNode.getLeftNode();
 	    Assert.assertEquals(vrNode.getName(), "b");
 	}
@@ -347,9 +550,13 @@ public class UnitTest
 	    Parser parser = new Parser(tokens);
 	    
 	    // Breaks apart the tree to test the contents in each node.
-	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
+	    AssignmentNode asNode = (AssignmentNode) parser.ParseOperation().get();
+	    
+	    VariableReferenceNode assignmentVrNode = (VariableReferenceNode) asNode.getTarget();
+	    Assert.assertEquals(assignmentVrNode.getName(), "d");
+	    
+	    OperationNode opNode = (OperationNode) asNode.getExpression();
 	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
-
 	    VariableReferenceNode vrNode = (VariableReferenceNode) opNode.getLeftNode();
 	    Assert.assertEquals(vrNode.getName(), "d");
 	}
@@ -392,11 +599,14 @@ public class UnitTest
 	    VariableReferenceNode vrNode = (VariableReferenceNode) parser.ParseOperation().get();
 	    Assert.assertEquals(vrNode.getName(), "e");
 	    
-	    OperationNode opNode = (OperationNode) vrNode.getIndex().get();
-	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
+	    AssignmentNode asNode = (AssignmentNode) vrNode.getIndex().get();
+	    VariableReferenceNode assignmentVrNode = (VariableReferenceNode) asNode.getTarget();
+	    Assert.assertEquals(assignmentVrNode.getName(), "b");
 	    
-	    VariableReferenceNode nestedVrNode = (VariableReferenceNode) opNode.getLeftNode();
-	    Assert.assertEquals(nestedVrNode.getName(), "b");
+	    OperationNode opNode = (OperationNode) asNode.getExpression();
+	    Assert.assertEquals(opNode.getOperation(), OperationNode.operations.PREINC);
+	    VariableReferenceNode assignementOperationVrNode = (VariableReferenceNode) opNode.getLeftNode();
+	    Assert.assertEquals(assignementOperationVrNode.getName(), "b");
 	}
 
 	@Test

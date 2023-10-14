@@ -1,7 +1,7 @@
 
 public class ReturnNode extends StatementNode
 {
-	Node returnExpression;
+	private Node returnExpression;
 	
 	public ReturnNode(Node returnExpression)
 	{

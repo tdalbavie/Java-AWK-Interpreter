@@ -26,9 +26,6 @@ public class Parser
 			// Continues while loop if ParseAction was successful
 			else if (ParseAction(node) == true)
 				continue;
-			// Throws an exception if code could not be parsed
-			else
-				throw new UnsupportedOperationException("Unable to parse.");
 		}
 		
 		return node;
@@ -170,9 +167,13 @@ public class Parser
 			// Checks for a potential condition, if there isn't one it will remain empty and pass it to ParseBlock.
 			optionalNode = ParseOperation();
 			
-			// Gives a potential condition, otherwise gives an empty.
-			node.getBlock().add(ParseBlock(optionalNode));
-			return true;
+			// Handles edge case of an empty token list.
+			if(th.MoreTokens() == true)
+			{
+				// Gives a potential condition, otherwise gives an empty.
+				node.getBlock().add(ParseBlock(optionalNode));
+				return true;
+			}
 		}
 		
 		// Returns false if nothing is found.
@@ -190,6 +191,8 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.OPENCURLBRACK);
 		if(optionalToken.isPresent())
 		{
+			// Used to accept an empty block if the first result from ParseStatement is an empty optional.
+			boolean EmptyBlockFlag = true;
 			// Loops until all statements have been parsed.
 			do
 			{
@@ -197,12 +200,29 @@ public class Parser
 				AcceptSeparators();
 				
 				Optional<StatementNode> optionalStatement = ParseStatement();
+				// Stops the loop when the first thing is an empty statement and accepts it as an empty statement.
+				if(optionalStatement.isEmpty() && EmptyBlockFlag == true)
+				{
+					block.getStatements().add(null);
+					break;
+				}
+				// Stops the loop when an empty statement is returned.
+				else if(optionalStatement.isEmpty() && EmptyBlockFlag == false)
+				{
+					break;
+				}
 				
 				block.getStatements().add(optionalStatement.get());
+				// Sets the flag to false after the first statement is successfully parse and present.
+				if(EmptyBlockFlag == true)
+					EmptyBlockFlag = false;
 				
 				// While loop needs to be fixed.
 				
-			}while(optionalToken.isPresent());
+			}while(true);
+			
+			// Removes any possible separators.
+			AcceptSeparators();
 			
 			// Makes sure block was closed.
 			optionalToken = th.MatchAndRemove(Token.TokenType.CLOSECURLBRACK);
@@ -228,12 +248,20 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.CONTINUE);
 		if(optionalToken.isPresent())
 		{
+			// Throws an exception when no separator follows the continue.
+			if(AcceptSeparators() == false)
+				throw new IllegalArgumentException("Must be a space following continue.");
+			
 			return Optional.of(new ContinueNode());
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.BREAK);
 		if(optionalToken.isPresent())
 		{
+			// Throws an exception when no separator follows the break.
+			if(AcceptSeparators() == false)
+				throw new IllegalArgumentException("Must be a space following break.");
+			
 			return Optional.of(new BreakNode());
 		}
 		
@@ -310,7 +338,7 @@ public class Parser
 						// Adds the next else-if to the chain.
 						current.addIfElse(new IfNode(conditionNode.get(), statements));
 						// Sets current to the next IfNode in the chain.
-						current = current.getNextIf().get();
+						current = current.getNextIf();
 						
 						// Checks if there is another else statement.
 						optionalToken = th.MatchAndRemove(Token.TokenType.ELSE);
@@ -354,18 +382,77 @@ public class Parser
 		optionalToken = th.MatchAndRemove(Token.TokenType.FOR);
 		if(optionalToken.isPresent())
 		{
-			/*
-			 * Steps:
-			 * call ParseOperation then check if there is a separator token.
-			 * if there is, continue getting the next two operations and make a ForNode
-			 * if not, make a ForEachNode.
-			 * Then check for closed parenthesis.
-			 * Return the ForNode/ForEachNode.
-			 */
 			// Removes any possible separator.
 			AcceptSeparators();
 			
+			optionalToken = th.MatchAndRemove(Token.TokenType.OPENPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No open parenthesis found after for statement.");
 			
+			// Gets the condition of the for statement.
+			Optional<Node> conditionNode = ParseOperation();
+			if(conditionNode.isEmpty())
+				throw new IllegalArgumentException("No condition given in for statement.");
+			
+			// Checks for a separator token to see the type of for loop.
+			if(AcceptSeparators() == true)
+			{
+				// Gets the second condition of the for statement.
+				Optional<Node> secondConditionNode = ParseOperation();
+				if(secondConditionNode.isEmpty())
+					throw new IllegalArgumentException("No second condition given in for statement.");
+				
+				// Makes sure there is a separator (;) between the second and third statement.
+				if(AcceptSeparators() == true)
+				{
+					// Gets the third condition of the for statement.
+					Optional<Node> thirdConditionNode = ParseOperation();
+					if(thirdConditionNode.isEmpty())
+						throw new IllegalArgumentException("No third condition given in for statement.");
+					
+					// Removes any possible separator.
+					AcceptSeparators();
+					
+					// Checks for a closed parenthesis after the third statement.
+					optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+					if(optionalToken.isEmpty())
+						throw new IllegalArgumentException("No open parenthesis found after for statement.");
+					
+					// Removes any possible separator.
+					AcceptSeparators();
+					
+					// Gets the statements of the for loop if any.
+					BlockNode statements = new BlockNode(Optional.empty());
+					
+					// Returns the initialization, condition, increment, and statements in a ForNode.
+					return Optional.of(new ForNode(conditionNode.get(), secondConditionNode.get(), thirdConditionNode.get(), statements));
+				}
+				// Throws an exception if no separator was found after getting the second condition.
+				else
+					throw new IllegalArgumentException("No sparator found after second condition of the for loop");
+			}
+			
+			// For our version of AWK, for each strictly does not allow a separator after the first statement.
+			// This would require taking in semi-colon as its own token which we did not do.
+			else
+			{
+				// Removes any possible separator.
+				AcceptSeparators();
+				
+				// Checks for a closed parenthesis after the first statement.
+				optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+				if(optionalToken.isEmpty())
+					throw new IllegalArgumentException("No closed parenthesis found after for each statement.");
+				
+				// Removes any possible separator.
+				AcceptSeparators();
+				
+				// Gets the statements of the for loop if any.
+				BlockNode statements = ParseBlock(Optional.empty());
+				
+				// Returns the only condition (key in array) and statements in a ForEachNode.
+				return Optional.of(new ForEachNode(conditionNode.get(), statements));
+			}
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.DELETE);
@@ -380,68 +467,186 @@ public class Parser
 			// Removes any possible separator.
 			AcceptSeparators();
 			
+			optionalToken = th.MatchAndRemove(Token.TokenType.WORD);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No array given after delete statement.");
+			
+			// Saves the array name.
+			String arrayName = optionalToken.get().getValue();
+			
+			// Checks for an array reference list following an array name.
+			optionalToken = th.MatchAndRemove(Token.TokenType.OPENBRACK);
+			if(optionalToken.isPresent())
+			{
+				// Removes any possible separator.
+				AcceptSeparators();
+				
+				// Checks if an index exists.
+				Optional<Node> indexExpression = ParseOperation();
+				LinkedList<Node> indices = new LinkedList<Node>();
+				
+				// Adds the expression to the list if present.
+				if(indexExpression.isPresent())
+					indices.add(indexExpression.get());
+				
+				// Removes any possible separator.
+				AcceptSeparators();
+				
+				// Checks if the list continues.
+				optionalToken = th.MatchAndRemove(Token.TokenType.COMMA);
+				if(optionalToken.isPresent())
+				{
+					// Takes care of an edge case such as delete array[,expression].
+					if(indices.isEmpty())
+						throw new IllegalArgumentException("Cannot enter a comma without an expression first when deleting an array.");
+					
+					do
+					{
+					// Removes any possible separator.
+					AcceptSeparators();
+					
+					// Makes sure another expression exists after a comma.
+					indexExpression = ParseOperation();
+					if(indexExpression.isEmpty())
+						throw new IllegalArgumentException("No expression found after comma when getting indices to delete.");
+					
+					// Adds the next expression to the list.
+					indices.add(indexExpression.get());
+					
+					optionalToken = th.MatchAndRemove(Token.TokenType.COMMA);
+					
+					// Loops until no more commas are found.
+					}while(optionalToken.isPresent());
+				}
+				// Removes any possible separator.
+				AcceptSeparators();
+				
+				optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEBRACK);
+				if(optionalToken.isEmpty())
+					throw new IllegalArgumentException("No closing bracket found after getting indices to delete.");
+				
+				// Returns a DeleteNode that also contains indices to be deleted.
+				return Optional.of(new DeleteNode(arrayName, indices));
+			}
+			// Returns a DeleteNode if no open bracket is found (deletes whole array).
+			else
+				return Optional.of(new DeleteNode(arrayName));
 			
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.WHILE);
 		if(optionalToken.isPresent())
 		{
-			/*
-			 * Steps:
-			 * Call ParseOperation to get the condition.
-			 * Call ParseBlock to get statements.
-			 * Create a WhileNode and return it.
-			 */
 			// Removes any possible separator.
 			AcceptSeparators();
 			
+			// Checks for an open parenthesis after the first statement.
+			optionalToken = th.MatchAndRemove(Token.TokenType.OPENPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No open parenthesis found after while statement.");
 			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			// Gets the while loop condition.
+			Optional<Node> condition = ParseOperation();
+			if(condition.isEmpty())
+				throw new IllegalArgumentException("No condition provided for while loop.");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			// Checks for an open parenthesis after the first statement.
+			optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No close parenthesis found after while statement.");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			BlockNode statementsBlock = ParseBlock(Optional.empty());
+			
+			return Optional.of(new WhileNode(condition.get(), statementsBlock));
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.DO);
 		if(optionalToken.isPresent())
 		{
-			/*
-			 * Steps:
-			 * Call ParseBlock to get statements.
-			 * Check for the while keyword.
-			 * Call ParseOperation for the condition.
-			 * Create a DoWhileNode and return it.
-			 */
 			// Removes any possible separator.
 			AcceptSeparators();
 			
+			BlockNode statementsBlock = ParseBlock(Optional.empty());
 			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			optionalToken = th.MatchAndRemove(Token.TokenType.WHILE);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No while statement found after do block");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			// Checks for an open parenthesis after the first statement.
+			optionalToken = th.MatchAndRemove(Token.TokenType.OPENPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No open parenthesis found after do while statement.");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			// Gets the while loop condition.
+			Optional<Node> condition = ParseOperation();
+			if(condition.isEmpty())
+				throw new IllegalArgumentException("No condition provided for do while loop.");
+			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
+			// Checks for an open parenthesis after the first statement.
+			optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEPAREN);
+			if(optionalToken.isEmpty())
+				throw new IllegalArgumentException("No close parenthesis found after do while statement.");
+			
+			return Optional.of(new DoWhileNode(condition.get(), statementsBlock));
 		}
 		
 		optionalToken = th.MatchAndRemove(Token.TokenType.RETURN);
 		if(optionalToken.isPresent())
 		{
-			/*
-			 * Steps:
-			 * Call ParseOperation to get returnExpression.
-			 * Create a ReturnNode and return it.
-			 */
 			// Removes any possible separator.
 			AcceptSeparators();
 			
+			// Gets the expression to be returned that follows the return statement.
+			Optional<Node> returnExpression = ParseOperation();
+			if(returnExpression.isEmpty())
+				throw new IllegalArgumentException("Return must have an expression to return.");
 			
+			return Optional.of(new ReturnNode(returnExpression.get()));
 		}
 		
 		// Deals with operation statements (Assignment, increment and decrement, and function calls)
 		else
 		{
-			/*
-			 * Steps:
-			 * Call ParseOperation and check if return is an assignment, increment, decrement, or function call.
-			 * Create its respective Node and return it.
-			 */
 			Optional<Node> optionalNode = ParseOperation();
-			
-			if(optionalNode.get() instanceof FunctionCallNode)
+			if(optionalNode.isPresent())
 			{
-				FunctionCallNode FuncCallNode = (FunctionCallNode) optionalNode.get();
-				return Optional.of(FuncCallNode);
+				// Checks if the result of ParseOperation is a function call.
+				if(optionalNode.get() instanceof FunctionCallNode)
+				{
+					FunctionCallNode FuncCallNode = (FunctionCallNode) optionalNode.get();
+					return Optional.of(FuncCallNode);
+				}
+				// Checks if the result of ParseOperation is an assignment.
+				else if(optionalNode.get() instanceof AssignmentNode)
+				{
+					AssignmentNode asNode = (AssignmentNode) optionalNode.get();
+					return Optional.of(asNode);
+				}
+				
+				else
+					throw new IllegalArgumentException("Invalide operation being used as statement.");
+				
 			}
 		}
 		
@@ -449,6 +654,7 @@ public class Parser
 		return Optional.empty();
 	}
 	
+	// Currently cannot handle getline, print, printf, exit, nextfile, next tokens until 
 	public Optional<Node> ParseFunctionCall()
 	{
 		// Checks if there is a token to check.
@@ -1241,7 +1447,9 @@ public class Parser
 			AcceptSeparators();
 			
 			OperationNode opNode = new OperationNode(OperationNode.operations.POSTINC, optionalNode.get());
-			return Optional.of(opNode);
+			AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
+			// Returns as an assignment node for ParseStatements.
+			return Optional.of(asNode);
 		}
 		
 		// Checks if a post decrement was found.
@@ -1252,7 +1460,9 @@ public class Parser
 			AcceptSeparators();
 			
 			OperationNode opNode = new OperationNode(OperationNode.operations.POSTDEC, optionalNode.get());
-			return Optional.of(opNode);
+			AssignmentNode asNode = new AssignmentNode(optionalNode.get(), opNode);
+			// Returns as an assignment node for ParseStatements.
+			return Optional.of(asNode);
 		}
 		
 		// Returns an optionalNode containing whatever the previous method returned if no conditions are met.
@@ -1301,14 +1511,14 @@ public class Parser
 				// Removes any possible separator after open bracket.
 				AcceptSeparators();
 				
-				VariableReferenceNode vrNode = new VariableReferenceNode(name, ParseBottomLevel());
+				VariableReferenceNode vrNode = new VariableReferenceNode(name, ParseLValue());
 				
 				optionalToken = th.MatchAndRemove(Token.TokenType.CLOSEBRACK);
 				// Removes any possible separator after close bracket.
 				AcceptSeparators();
 				// Makes sure there is a closing bracket when processing array;
 				if(optionalToken.isEmpty())
-					throw new IllegalArgumentException("No closing bracket was found.");
+					throw new IllegalArgumentException("No closing bracket was found in array.");
 				
 				return Optional.of(vrNode);
 			}
@@ -1432,7 +1642,9 @@ public class Parser
 				throw new IllegalArgumentException("Unable to find operation after increment.");
 			
 			OperationNode opNode = new OperationNode(OperationNode.operations.PREINC, optNode.get());
-			return Optional.of(opNode);
+			AssignmentNode asNode = new AssignmentNode(optNode.get(), opNode);
+			// Returns as an assignment node for ParseStatements.
+			return Optional.of(asNode);
 		}
 		
 		// Returns an Optional of OperationNode  of some operation and PREDEC.
@@ -1447,7 +1659,9 @@ public class Parser
 				throw new IllegalArgumentException("Unable to find operation after decrement.");
 			
 			OperationNode opNode = new OperationNode(OperationNode.operations.PREDEC, optNode.get());
-			return Optional.of(opNode);
+			AssignmentNode asNode = new AssignmentNode(optNode.get(), opNode);
+			// Returns as an assignment node for ParseStatements.
+			return Optional.of(asNode);
 		}
 		
 		// Will check for a function call and return it if present, otherwise optionalNode is empty.
@@ -1474,7 +1688,7 @@ public class Parser
 			if (optionalToken.isPresent() == true)
 				hasSeparator = true;
 			
-			// Continues to remove separators until it returns an empty optional.
+			// Continues to remove separators until the next token is no longer a separator.
 			while (optionalToken.isPresent() == true)
 			{
 				optionalToken = th.MatchAndRemove(Token.TokenType.SEPARATOR);

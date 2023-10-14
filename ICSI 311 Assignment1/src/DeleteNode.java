@@ -3,28 +3,28 @@ import java.util.Optional;
 
 public class DeleteNode extends StatementNode
 {
-	Node ArrayName; // Holds array variable
-	Optional<LinkedList<Node>> Index; // Holds list of indices to be deleted if any.
+	private String ArrayName;
+	private LinkedList<Node> Index; // Holds list of indices to be deleted if any.
 	
 	// Used if only a variable is given
-	public DeleteNode(Node ArrayName)
+	public DeleteNode(String ArrayName)
 	{
 		this.ArrayName = ArrayName;
-		Index = Optional.empty();
+		Index = null;
 	}
 	
-	public DeleteNode(Node ArrayName, LinkedList<Node> Index)
+	public DeleteNode(String ArrayName, LinkedList<Node> Index)
 	{
 		this.ArrayName = ArrayName;
-		this.Index = Optional.of(Index);
+		this.Index = Index;
 	}
 	
-	public Node getArrayName()
+	public String getArrayName()
 	{
 		return ArrayName;
 	}
 	
-	public Optional<LinkedList<Node>> getIndex()
+	public LinkedList<Node> getIndex()
 	{
 		return Index;
 	}
