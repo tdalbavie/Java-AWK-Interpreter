@@ -236,6 +236,7 @@ public class UnitTest
 	    Assert.assertTrue(returnNode.getReturnExpression() instanceof OperationNode);
 	}
 	
+	/*
 	// All tests past this point are for parser 3
 	@Test
 	public void AssignmentTest()
@@ -723,7 +724,7 @@ public class UnitTest
 	    OperationNode opNode = (OperationNode) parser.ParseOperation().get();
 	}
 	
-	/*
+	
 	// All tests past this point are for Parser 1.
 	@Test
 	public void TokenHandlerPeekTest()

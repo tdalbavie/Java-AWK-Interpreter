@@ -36,7 +36,8 @@ public class Main
 		Parser pars = new Parser(tokens);
 	    ProgramNode node = pars.Parse();
 	    // Prints out ProgramNode.
-	    System.out.print(node.toString());
+	    
+	    int i = 2;
 	}
 }
 	
