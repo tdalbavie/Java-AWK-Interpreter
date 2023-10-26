@@ -1,15 +1,25 @@
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.function.Function;
 
 public class BuiltInFunctionDefinitionNode extends FunctionDefinitionNode
 {
-	HashMap<String, InterpreterDataType> BuiltIns;
+	private Function<InterpreterDataType,String> function;
+	private boolean isVariadic;
 	
-	public BuiltInFunctionDefinitionNode(LinkedList<StatementNode> Statements, LinkedList<String> ParameterNames, String FunctionName) 
+	public BuiltInFunctionDefinitionNode(boolean isVaridic, Function<InterpreterDataType,String> function) 
 	{
-		super(Statements, ParameterNames, FunctionName);
+		this.function = function;
+		this.isVariadic = isVaridic;
 	}
 	
+	public String execute(InterpreterDataType params)
+	{
+		return function.apply(params);
+	}
 	
+	public boolean isVariadic()
+	{
+		return isVariadic;
+	}
 
 }

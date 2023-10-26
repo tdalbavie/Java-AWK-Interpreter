@@ -6,6 +6,12 @@ public class FunctionDefinitionNode extends Node
 	private LinkedList<String> ParameterNames;
 	private LinkedList<StatementNode> Statements;
 	
+	// Empty constructor so that BuiltInFunctionDefinitionNode does not need to setup this class.
+	public FunctionDefinitionNode()
+	{
+		
+	}
+	
 	public FunctionDefinitionNode(LinkedList<StatementNode> Statements, LinkedList<String> ParameterNames, String FunctionName)
 	{
 		this.FunctionName = FunctionName;

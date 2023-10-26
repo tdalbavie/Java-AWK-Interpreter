@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,9 @@ public class Interpreter
 		{
 			if(!input.isEmpty())
 			{
+				// Clears the existing field references in the globalVariables HashMap.
+				clearFieldReferences();
+				
 				int numberOfFields = 0;
 				String line = input.get(0);
 				input.remove(0); // Removes the line to get the next line when this is called again.
@@ -38,14 +42,36 @@ public class Interpreter
 				// Adds the numberOfFields count to the NF variable.
 				globalVariables.put("NF", new InterpreterDataType(Integer.toString(numberOfFields)));
 				
+				// Increment the Number of Records for each line that gets processed.
+				int lineCounter = Integer.parseInt(globalVariables.get("NR").getType());
+				lineCounter++;
+				globalVariables.put("NR", new InterpreterDataType(Integer.toString(lineCounter)));
+				// FNR will be set the same way as NR as we are most likely not working with more than one file with our implementation.
+				globalVariables.put("FNR", new InterpreterDataType(Integer.toString(lineCounter)));
+				
 				return true;
 			}
 			return false;
 		}
+		
+		// Helper method that clears all existing field references before the next sentence to prevent lingering fields.
+		private void clearFieldReferences()
+		{
+			Iterator<String> iterator = globalVariables.keySet().iterator();
+			
+			// Loops through the globalVariables to delete all field references to prime it for the next line.
+			while (iterator.hasNext())
+			{
+				String key = iterator.next();
+				// Uses regex to find the pattern "$i" (i is some integer) and removes each key that matches.
+				if (key.matches("\\$\\d+"))
+					iterator.remove();
+			}
+		}
 	}
 	
 	HashMap<String, InterpreterDataType> globalVariables;
-	HashMap<String, FunctionDefinitionNode> function;
+	HashMap<String, FunctionDefinitionNode> functions;
 	LineManager lm;
 	
 	public Interpreter(ProgramNode program, Optional<Path> filePath)
@@ -79,10 +105,32 @@ public class Interpreter
 		for(FunctionDefinitionNode function : program.getFunctionDefinitionNode())
 		{
 			// Gets the name as the key of the function and then puts the function as the value.
-			this.function.put(function.getFunctionName(), function);
+			this.functions.put(function.getFunctionName(), function);
 		}
 		
-		
+		// TODO: print, printf, getline, next, gsub, index, length, match, split, sprintf, sub, substr, tolower, toupper.
+		functions.put("print", new BuiltInFunctionDefinitionNode(true, (printMap) -> 
+		{
+			if(printMap instanceof InterpreterArrayDataType)
+			{
+				printMap = (InterpreterArrayDataType) printMap;
+				
+			}
+			return null;
+		}));
+		functions.put("printf", null);
+		functions.put("getline", null);
+		functions.put("next", null);
+		functions.put("gsub", null);
+		functions.put("index", null);
+		functions.put("length", null);
+		functions.put("match", null);
+		functions.put("split", null);
+		functions.put("sprintf", null);
+		functions.put("sub", null);
+		functions.put("substr", null);
+		functions.put("tolower", null);
+		functions.put("toupper", null);
 		
 	}
 }
