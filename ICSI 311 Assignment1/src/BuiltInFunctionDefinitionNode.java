@@ -3,6 +3,7 @@ import java.util.function.Function;
 
 public class BuiltInFunctionDefinitionNode extends FunctionDefinitionNode
 {
+	// When there are multiple parameters I use InterpreterArrayDataType in place of InterpreterDataType and pull the HashMap from that one since it would be the same.
 	private Function<InterpreterDataType,String> function;
 	private boolean isVariadic;
 	

@@ -2,7 +2,6 @@ import java.util.HashMap;
 
 public class InterpreterArrayDataType extends InterpreterDataType
 {
-	// LinkedHashMap???
 	HashMap<String, InterpreterDataType> arrayType;
 	
 	public InterpreterArrayDataType()
