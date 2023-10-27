@@ -21,7 +21,7 @@ public class Main
 			e.printStackTrace();
 		}
 		
-		// Passes file content to Lexer
+		// Passes file content to Lexer.
 		Lexer lex = new Lexer(fileContents);
 		// Returns LinkedList of tokens
 		LinkedList<Token> tokens = lex.Lex();

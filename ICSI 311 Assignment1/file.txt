@@ -1,21 +1,7 @@
-# Set the input field separator (delimiter) to space
-BEGIN {
-    FS = " "
-}
-
-# Process each line
 {
-    # Print the entire line
     print "Full line:", $0
-
-    # Print the number of fields in the current line
-    print "Number of fields:", NF
-
-    # Access and print specific fields
-    print "First Name:", $1
-    print "Last Name:", $2
-    print "Age:", $3
-
-    # Add a separator for clarity
-    print "-----------------------"
+    printf "Number of fields:"
+    getline
+    nextfile
+    next
 }

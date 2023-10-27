@@ -38,7 +38,7 @@ public class Interpreter
 				// For each word it adds a field reference that.
 				for(int i = 0; i < words.length; i++)
 				{
-					globalVariables.put("$" + i + 1, new InterpreterDataType(words[i]));
+					globalVariables.put("$" + (i + 1), new InterpreterDataType(words[i]));
 					numberOfFields++;
 				}
 				// Adds the numberOfFields count to the NF variable.
@@ -78,6 +78,9 @@ public class Interpreter
 	
 	public Interpreter(ProgramNode program, Optional<Path> filePath)
 	{
+		globalVariables = new HashMap<String, InterpreterDataType>();
+		functions = new HashMap<String, FunctionDefinitionNode>();
+		
 		List<String> input = new ArrayList<String>();
 		// Checks for file path and populates the list with the file's text, if none is found, it will pass the empty ArrayList of strings in.
 		if(filePath.isPresent())
@@ -95,9 +98,6 @@ public class Interpreter
 		}
 		
 		lm = new LineManager(input);
-		// This will initialize the first line into the globalVariables.
-		// This will allow functions like gsub to be used without getting next line.
-		lm.SplitAndAssign();
 		
 		globalVariables.put("FS", new InterpreterDataType(" "));
 		globalVariables.put("OFMT", new InterpreterDataType("%.6g"));
@@ -105,6 +105,10 @@ public class Interpreter
 		globalVariables.put("ORS", new InterpreterDataType("\n"));
 		globalVariables.put("NR", new InterpreterDataType("0"));
 		globalVariables.put("FNR", new InterpreterDataType("0"));
+		
+		// This will initialize the first line into the globalVariables.
+		// This will allow functions like gsub to be used without getting next line.
+		lm.SplitAndAssign();
 		
 		// Iterates through each entry in ProgramNode's FunctionDefinitionNode LinkedList.
 		for(FunctionDefinitionNode function : program.getFunctionDefinitionNode())
@@ -118,8 +122,10 @@ public class Interpreter
 			if(printParameters instanceof InterpreterArrayDataType)
 			{
 				int totalEntries = ((InterpreterArrayDataType) printParameters).getArrayType().size();
+				// Checks if parameters are given.
 				if(totalEntries != 0)
 				{
+					// Loops through each entry of parameters and prints it.
 					for (int i = 0; i < totalEntries; i++)
 					{
 						InterpreterDataType value = ((InterpreterArrayDataType) printParameters).getArrayType().get(String.valueOf(i));
@@ -165,19 +171,27 @@ public class Interpreter
 			return null;
 		}));
 		
-		functions.put("getline", new BuiltInFunctionDefinitionNode(true, (getLineParameters) -> 
+		functions.put("getline", new BuiltInFunctionDefinitionNode(false, (getLineParameters) -> 
 		{
-			lm.SplitAndAssign();
-			return null;
+			// Returns 1 if it can successfully get the next line.
+			if(lm.SplitAndAssign() == true)
+				return "1";
+			// Returns 0 if it encounters the end of the file.
+			else
+				return "0";
 		}));
 		
-		functions.put("next", new BuiltInFunctionDefinitionNode(true, (nextParameters) -> 
+		functions.put("next", new BuiltInFunctionDefinitionNode(false, (nextParameters) -> 
 		{
-			lm.SplitAndAssign();
-			return null;
+			// Returns 1 if it can successfully get the next line.
+			if(lm.SplitAndAssign() == true)
+				return "1";
+			// Returns 0 if it encounters the end of the file.
+			else
+				return "0";
 		}));
 		
-		functions.put("gsub", new BuiltInFunctionDefinitionNode(true, (gsubParameters) -> 
+		functions.put("gsub", new BuiltInFunctionDefinitionNode(false, (gsubParameters) -> 
 		{
 			if(gsubParameters instanceof InterpreterArrayDataType)
 			{
@@ -188,21 +202,25 @@ public class Interpreter
 				else if (totalEntries == 1)
 					throw new IllegalArgumentException("gsub must contain a replacement string.");
 				
-				// Checks if there is a third value in the HashMap to indicate a field reference replacement.
+				// Checks if there is a third value in the HashMap to indicate a variable replacement.
+				// Target is not really testable right now because we are missing variables so for now it just implements field references.
 				if(((InterpreterArrayDataType) gsubParameters).getArrayType().containsKey("2"))
 				{
 					String fieldReference = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("2").getType();
 					// Gets the string that is held by the field value.
-					String fieldReferenceValue = globalVariables.get(fieldReference).getType();
-					
-					String regex = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("0").getType();
-					String replacement = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("1").getType();
-					
-					// Takes the regex and replacement string and replaces the contents at that field variable.
-					String result = fieldReferenceValue.replaceAll(regex, replacement);
-					
-					// Overrides the existing field reference string with the new one.
-					globalVariables.put(fieldReference, new InterpreterDataType(result));
+					if (globalVariables.containsKey(fieldReference))
+					{
+						String fieldReferenceValue = globalVariables.get(fieldReference).getType();
+						
+						String regex = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("0").getType();
+						String replacement = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("1").getType();
+						
+						// Takes the regex and replacement string and replaces the contents at that field variable.
+						String result = fieldReferenceValue.replaceAll(regex, replacement);
+						
+						// Overrides the existing field reference string with the new one.
+						globalVariables.put(fieldReference, new InterpreterDataType(result));
+					}
 				}
 				// Assumes it will work on $0 (whole line) if no target is given.
 				else
@@ -226,7 +244,7 @@ public class Interpreter
 			return null;
 		}));
 		
-		functions.put("index", new BuiltInFunctionDefinitionNode(true, (indexParameters) -> 
+		functions.put("index", new BuiltInFunctionDefinitionNode(false, (indexParameters) -> 
 		{
 			if(indexParameters instanceof InterpreterArrayDataType)
 			{
@@ -241,7 +259,7 @@ public class Interpreter
 					int position = in.indexOf(find);
 					
 					if (position != -1)
-						return Integer.toString(position);
+						return Integer.toString(++position);
 					// Returns 0 when no character was found.
 					else
 						return "0";
@@ -254,7 +272,7 @@ public class Interpreter
 					int position = mainString.indexOf(find);
 					
 					if (position != -1)
-						return Integer.toString(position);
+						return Integer.toString(++position);
 					// Returns 0 when no character was found.
 					else
 						return "0";
@@ -265,12 +283,20 @@ public class Interpreter
 		}));
 		
 		// Simply returns the length of the string.
-		functions.put("length", new BuiltInFunctionDefinitionNode(true, (lengthParameters) -> 
+		functions.put("length", new BuiltInFunctionDefinitionNode(false, (lengthParameters) -> 
 		{
-			return Integer.toString(lengthParameters.getType().length());
+			// Extracts the parameter to check if it is a variable key (in this case field reference)
+			String stringLength = lengthParameters.getType();
+			if(globalVariables.containsKey(stringLength))
+			{
+				String referenceVariableLength = globalVariables.get(stringLength).getType();
+				return Integer.toString(referenceVariableLength.length());
+			}
+			else
+				return Integer.toString(lengthParameters.getType().length());
 		}));
 		
-		functions.put("match", new BuiltInFunctionDefinitionNode(true, (matchParameters) -> 
+		functions.put("match", new BuiltInFunctionDefinitionNode(false, (matchParameters) -> 
 		{
 			if(matchParameters instanceof InterpreterArrayDataType)
 			{
@@ -283,7 +309,7 @@ public class Interpreter
 				
 				// Gets the first parameter.
 				String mainString = ((InterpreterArrayDataType) matchParameters).getArrayType().get("0").getType();
-				// Checks if the first parameter is a field reference
+				// Checks if the first parameter is a field reference/variable
 				if(globalVariables.containsKey(mainString))
 				{
 					String matchString = globalVariables.get(mainString).getType();
@@ -308,7 +334,7 @@ public class Interpreter
 			        // Returns the index where the substring begins.
 			        if (longestStart != -1) 
 			        {
-			            return Integer.toString(longestStart);
+			            return Integer.toString(++longestStart); // Increments the count since Java starts at 0
 			        } 
 			        // Returns 0 if no match was found.
 			        else 
@@ -316,6 +342,7 @@ public class Interpreter
 			            return "0";
 			        }
 				}
+				
 				// Same as before but assumes that the value of mainString is a string, not a variable.
 				else
 				{
@@ -340,7 +367,7 @@ public class Interpreter
 			        // Returns the index where the substring begins.
 			        if (longestStart != -1) 
 			        {
-			            return Integer.toString(longestStart);
+			            return Integer.toString(++longestStart); // Increments the count since Java starts at 0
 			        } 
 			        // Returns 0 if no match was found.
 			        else 
@@ -353,47 +380,68 @@ public class Interpreter
 				throw new IllegalArgumentException("Expected IADT in match statement.");
 		}));
 		
-		functions.put("split", new BuiltInFunctionDefinitionNode(true, (splitParameters) -> 
+		// Currently have no way to assign array to anything so it will be left alone.
+		functions.put("split", new BuiltInFunctionDefinitionNode(false, (splitParameters) -> 
 		{
 			if(splitParameters instanceof InterpreterArrayDataType)
 			{
 				int totalEntries = ((InterpreterArrayDataType) splitParameters).getArrayType().size();
 				
 				if (totalEntries == 0)
-					throw new IllegalArgumentException("split must contain a string, array, and seperator.");
+					throw new IllegalArgumentException("split must contain a string and array.");
 				else if (totalEntries == 1)
-					throw new IllegalArgumentException("split must contain an array and seperator.");
+					throw new IllegalArgumentException("split must contain an array.");
 				
 				// Gets the first parameter.
 				String mainString = ((InterpreterArrayDataType) splitParameters).getArrayType().get("0").getType();
-				// Checks if string is a field reference.
-				if (globalVariables.containsKey(mainString))
+				// Checks if a field separator was provided.
+				if (((InterpreterArrayDataType) splitParameters).getArrayType().containsKey("2"))
 				{
-					String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
-					String pieces[] = globalVariables.get(mainString).getType().split(separator);
+					if (globalVariables.containsKey(mainString))
+					{
+						String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
+						String pieces[] = globalVariables.get(mainString).getType().split(separator);
+						
+						return Integer.toString(pieces.length);
+					}
 					
-					return Integer.toString(pieces.length);
+					else
+					{
+						String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
+						String pieces[] = mainString.split(separator);
+						
+						return Integer.toString(pieces.length);
+					}
 				}
-				
+				// Assumes that the separator is a whitespace.
 				else
 				{
-					String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
-					String pieces[] = mainString.split(separator);
+					if (globalVariables.containsKey(mainString))
+					{
+						String pieces[] = globalVariables.get(mainString).getType().split(" ");
+						
+						return Integer.toString(pieces.length);
+					}
 					
-					return Integer.toString(pieces.length);
+					else
+					{
+						String pieces[] = mainString.split(" ");
+						
+						return Integer.toString(pieces.length);
+					}
 				}
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in split statement.");
 		}));
 		
-		// Not being done yet.
+		// Cannot be done in the current state of the interpreter.
 		functions.put("sprintf", new BuiltInFunctionDefinitionNode(true, (sprintfParameters) -> 
 		{
 			return null;
 		}));
 		
-		functions.put("sub", new BuiltInFunctionDefinitionNode(true, (subParameters) -> 
+		functions.put("sub", new BuiltInFunctionDefinitionNode(false, (subParameters) -> 
 		{
 			if(subParameters instanceof InterpreterArrayDataType)
 			{
@@ -404,7 +452,7 @@ public class Interpreter
 				else if (totalEntries == 1)
 					throw new IllegalArgumentException("sub must contain a replacement.");
 				
-				// Checks to see if there is a target string.
+				// Checks to see if there is a target string (target should typically be a variable otherwise substitution gets lost).
 				if(((InterpreterArrayDataType) subParameters).getArrayType().containsKey("2"))
 				{
 					int hasSubbed = 0; // Gets incremented once and returned to identify if a sub happened.
@@ -424,7 +472,7 @@ public class Interpreter
 			            target = target.substring(0, start) + replacement + target.substring(end);
 			            hasSubbed++;
 			        }
-			        
+			        // Returns 0 if nothing was found or 1 if it was found.
 			        return Integer.toString(hasSubbed);
 				}
 				// Will work on $0 (whole line) if no target is found.
@@ -445,9 +493,11 @@ public class Interpreter
 			            int end = matcher.end();
 			            
 			            target = target.substring(0, start) + replacement + target.substring(end);
+			            globalVariables.put("$0", new InterpreterDataType(target)); // Inserts the new string
+			            
 			            hasSubbed++;
 			        }
-			        
+			     // Returns 0 if nothing was found or 1 if it was found.
 			        return Integer.toString(hasSubbed);
 				}
 			}
@@ -455,7 +505,7 @@ public class Interpreter
 				throw new IllegalArgumentException("Expected IADT in sub statement.");
 		}));
 		
-		functions.put("substr", new BuiltInFunctionDefinitionNode(true, (substrParameters) -> 
+		functions.put("substr", new BuiltInFunctionDefinitionNode(false, (substrParameters) -> 
 		{
 			if(substrParameters instanceof InterpreterArrayDataType)
 			{
@@ -490,12 +540,12 @@ public class Interpreter
 				throw new IllegalArgumentException("Expected IADT in substr statement.");
 		}));
 		
-		functions.put("tolower", new BuiltInFunctionDefinitionNode(true, (tolowerParameters) -> 
+		functions.put("tolower", new BuiltInFunctionDefinitionNode(false, (tolowerParameters) -> 
 		{
 			return tolowerParameters.getType().toLowerCase();
 		}));
 		
-		functions.put("toupper", new BuiltInFunctionDefinitionNode(true, (toupperParameters) -> 
+		functions.put("toupper", new BuiltInFunctionDefinitionNode(false, (toupperParameters) -> 
 		{
 			return toupperParameters.getType().toUpperCase();
 		}));

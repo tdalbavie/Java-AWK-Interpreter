@@ -664,7 +664,7 @@ public class Parser
 			|| th.Peek(0).get().getType() == Token.TokenType.GETLINE
 			|| th.Peek(0).get().getType() == Token.TokenType.NEXTFILE
 			|| th.Peek(0).get().getType() == Token.TokenType.NEXT)
-			{
+			{ 
 				// Checks for any extra separators and loops past them before checking for open Parenthesis.
 				int i = 1;
 				while(th.Peek(i).get().getType() == Token.TokenType.SEPARATOR)

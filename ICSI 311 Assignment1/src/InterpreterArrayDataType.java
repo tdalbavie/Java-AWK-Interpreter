@@ -2,7 +2,7 @@ import java.util.HashMap;
 
 public class InterpreterArrayDataType extends InterpreterDataType
 {
-	HashMap<String, InterpreterDataType> arrayType;
+	private HashMap<String, InterpreterDataType> arrayType;
 	
 	public InterpreterArrayDataType()
 	{

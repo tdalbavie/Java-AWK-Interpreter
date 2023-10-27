@@ -1,13 +1,416 @@
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Optional;
+
 import org.junit.Assert;
 import org.junit.Test;
 
 public class UnitTest 
 {
+	// For print and printf I will not use JUnit, I will simply print it in the console.
+	// I have no reason to test if a Java function works or not, it's almost guaranteed.
+	@Test
+	public void printfTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode printf = (BuiltInFunctionDefinitionNode) interpreter.functions.get("printf");
+	    // Testing only for printf and print since no other types are variadic.
+	    Assert.assertEquals(printf.isVariadic(), true);
+	    
+	    // Setup the parameters.
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$4"));
+	    parameters.getArrayType().put("1", interpreter.globalVariables.get("$5"));
+	    
+	    // Setup the formated string.
+	    InterpreterDataType formatedString = new InterpreterDataType("This file is a: %s %s\n");
+	    
+	    // Setup the 
+	    InterpreterArrayDataType IADT = new InterpreterArrayDataType();
+	    IADT.getArrayType().put("0", formatedString);
+	    IADT.getArrayType().put("1", parameters);
+	    
+	    // Should output: "This file is a: test file"
+	    printf.execute(IADT);
+	    
+	}
+	
+	@Test
+	public void printTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode print = (BuiltInFunctionDefinitionNode) interpreter.functions.get("print");
+	    
+	    // Testing only for printf and print since no other types are variadic.
+	    Assert.assertEquals(print.isVariadic(), true);
+	    
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    // Prints the whole line.
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    
+	    // Should output: "This is a test file with some text."
+	    print.execute(parameters);
+	    
+	    // Added a space to separate the two prints.
+	    System.out.println();
+	    
+	    // Prints each individual field reference.
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$1"));
+	    parameters.getArrayType().put("1", interpreter.globalVariables.get("$2"));
+	    parameters.getArrayType().put("2", interpreter.globalVariables.get("$3"));
+	    parameters.getArrayType().put("3", interpreter.globalVariables.get("$4"));
+	    parameters.getArrayType().put("4", interpreter.globalVariables.get("$5"));
+	    
+	    // Should output: "Thisisatestfile" (There are no spaces in each field reference so it will be one big block).
+	    print.execute(parameters);
+	    
+	    // Added a space to separate the two prints.
+	    System.out.println();
+	}
+	
+	@Test
+	public void toupperTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode toupper = (BuiltInFunctionDefinitionNode) interpreter.functions.get("toupper");
+	    Assert.assertEquals(toupper.execute(interpreter.globalVariables.get("$0")), "THIS IS A TEST FILE WITH SOME TEXT.");
+	}
+	
+	@Test
+	public void tolowerTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode tolower = (BuiltInFunctionDefinitionNode) interpreter.functions.get("tolower");
+	    Assert.assertEquals(tolower.execute(interpreter.globalVariables.get("$0")), "this is a test file with some text.");
+	}
+	
+	@Test
+	public void substrTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode substr = (BuiltInFunctionDefinitionNode) interpreter.functions.get("substr");
+	}
+	
+	@Test
+	public void subTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode sub = (BuiltInFunctionDefinitionNode) interpreter.functions.get("sub");
+	    
+	    // This will skip to the second line so it can test when a number is encountered.
+	    interpreter.lm.SplitAndAssign();
+
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", new InterpreterDataType("[0-9]"));
+	    parameters.getArrayType().put("1", new InterpreterDataType("5"));
+	    
+	    sub.execute(parameters);
+	    
+	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "This is some more text with a 5.");
+	}
+	
+	@Test
+	public void splitTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode split = (BuiltInFunctionDefinitionNode) interpreter.functions.get("split");
+	    
+	    // Setup the parameters.
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    // This simulates the array but currently nothing is being done with it so it will be empty.
+	    parameters.getArrayType().put("1", new InterpreterDataType()); 
+	    
+	    Assert.assertEquals(split.execute(parameters), "8");
+	}
+	
+	@Test
+	public void matchTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will skip to the second line so it can test when a number is encountered.
+	    interpreter.lm.SplitAndAssign();
+	    
+	    BuiltInFunctionDefinitionNode match = (BuiltInFunctionDefinitionNode) interpreter.functions.get("match");
+	    
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    parameters.getArrayType().put("1", new InterpreterDataType("[0-9]"));
+	    
+	    // Finds the number 1 on line 2 of the String-file.txt file.
+	    Assert.assertEquals(match.execute(parameters), "31");
+	}
+	
+	@Test
+	public void lengthTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode length = (BuiltInFunctionDefinitionNode) interpreter.functions.get("length");
+	    
+	    InterpreterDataType parameter = interpreter.globalVariables.get("$0");
+	    
+	    Assert.assertEquals(length.execute(parameter), "35");
+	}
+	
+	@Test
+	public void indexTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode index = (BuiltInFunctionDefinitionNode) interpreter.functions.get("index");
+	    
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    parameters.getArrayType().put("1", new InterpreterDataType("Test"));
+	    
+	    Assert.assertEquals(index.execute(parameters), "11");
+	}
+	
+	@Test
+	public void gsubTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode gsub = (BuiltInFunctionDefinitionNode) interpreter.functions.get("gsub");
+	    
+	    // This will skip to the third line so it can test when multiple numbers are encountered.
+	    interpreter.lm.SplitAndAssign();
+	    interpreter.lm.SplitAndAssign();
+	    
+
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", new InterpreterDataType("[0-9]"));
+	    parameters.getArrayType().put("1", new InterpreterDataType("5"));
+	    
+	    gsub.execute(parameters);
+	    // Replaces 11111 with 55555.
+	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "55555");
+	    
+	}
+	
+	@Test
+	public void nextTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode next = (BuiltInFunctionDefinitionNode) interpreter.functions.get("next");
+	    
+	    // Create an empty IDT since next does not use any parameters.
+	    InterpreterDataType empty = new InterpreterDataType();
+	    
+	    next.execute(empty);
+	    
+	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "This is some more text with a 1.");
+	}
+	
+	// In our implementation, getline will do the same as next.
+	@Test
+	public void getlineTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    BuiltInFunctionDefinitionNode getline = (BuiltInFunctionDefinitionNode) interpreter.functions.get("getline");
+	    
+	    // Create an empty IDT since next does not use any parameters.
+	    InterpreterDataType empty = new InterpreterDataType();
+	    
+	    getline.execute(empty);
+	    
+	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "This is some more text with a 1.");
+	}
+	
+	// I added SplitAndAssign into the constructor for now to initialize the field references for the first line.
+	// This will likely be changed later but I did it this way so I can easily test if SplitAndAssign works.
+	@Test
+	public void SplitAndAssignTest()
+	{
+		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
+		Lexer lexer = new Lexer("{break\r\n}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    // Be sure to use provided file to test this.
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "This Is A Test File With Some Text.");
+	    Assert.assertEquals(interpreter.globalVariables.get("$1").getType(), "This");
+	    Assert.assertEquals(interpreter.globalVariables.get("$2").getType(), "Is");
+	    Assert.assertEquals(interpreter.globalVariables.get("$3").getType(), "A");
+	    Assert.assertEquals(interpreter.globalVariables.get("$4").getType(), "Test");
+	    Assert.assertEquals(interpreter.globalVariables.get("$5").getType(), "File");
+	    Assert.assertEquals(interpreter.globalVariables.get("$6").getType(), "With");
+	    Assert.assertEquals(interpreter.globalVariables.get("$7").getType(), "Some");
+	    Assert.assertEquals(interpreter.globalVariables.get("$8").getType(), "Text.");
+	}
+	
+	// This tests the changes final changes in the parser, assume parameters are correct.
+	@Test
+	public void builtInFunctionsTest()
+	{
+		Lexer lexer = new Lexer("{\r\n"
+				+ "    print \"Full line:\", $0\r\n"
+				+ "    printf \"Number of fields:\"\r\n"
+				+ "    getline\r\n"
+				+ "    nextfile\r\n"
+				+ "    next\r\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    BlockNode block = node.getBlock().get(0);
+	    FunctionCallNode printFCN = (FunctionCallNode) block.getStatements().get(0);
+	    FunctionCallNode printfFCN = (FunctionCallNode) block.getStatements().get(1);
+	    FunctionCallNode getlineFCN = (FunctionCallNode) block.getStatements().get(2);
+	    FunctionCallNode nextfileFCN = (FunctionCallNode) block.getStatements().get(3);
+	    FunctionCallNode nextFCN = (FunctionCallNode) block.getStatements().get(4);
+	    
+	    Assert.assertEquals(printFCN.getName(), "print");
+	    Assert.assertEquals(printfFCN.getName(), "printf");
+	    Assert.assertEquals(getlineFCN.getName(), "getline");
+	    Assert.assertEquals(nextfileFCN.getName(), "nextfile");
+	    Assert.assertEquals(nextFCN.getName(), "next");
+	}
+	
+	
+	
+	// Everything past this point is for Parser 4
 	@Test
 	public void BreakTest()
 	{
-		Lexer lexer = new Lexer("break\r\n");
+		Lexer lexer = new Lexer("{break\r\n}");
 		LinkedList<Token> tokens = lexer.Lex();
 	    Parser parser = new Parser(tokens);
 	    ProgramNode node = parser.Parse();

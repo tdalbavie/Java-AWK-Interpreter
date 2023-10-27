@@ -1,7 +1,7 @@
 
 public class InterpreterDataType 
 {
-	String type;
+	private String type;
 	
 	public InterpreterDataType()
 	{
