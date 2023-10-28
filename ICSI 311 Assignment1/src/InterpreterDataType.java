@@ -17,4 +17,9 @@ public class InterpreterDataType
 	{
 		return type;
 	}
+	
+	public void setType(String type)
+	{
+		this.type = type;
+	}
 }

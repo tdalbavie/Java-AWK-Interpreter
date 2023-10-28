@@ -203,80 +203,79 @@ public class Interpreter
 					throw new IllegalArgumentException("gsub must contain a replacement string.");
 				
 				// Checks if there is a third value in the HashMap to indicate a variable replacement.
-				// Target is not really testable right now because we are missing variables so for now it just implements field references.
 				if(((InterpreterArrayDataType) gsubParameters).getArrayType().containsKey("2"))
 				{
-					String fieldReference = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("2").getType();
-					// Gets the string that is held by the field value.
-					if (globalVariables.containsKey(fieldReference))
+					InterpreterDataType IDT = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("2");
+					String IDTtype = IDT.getType();
+				
+					String regex = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("0").getType();
+					String replacement = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("1").getType();
+					
+					// Takes the regex and replacement string and replaces the contents at that field variable.
+					String result = IDTtype.replaceAll(regex, replacement);
+					
+					// Counts the total number of substitutions made so it can return it.
+					int totalSubstitutions = 0;
+					int index = result.indexOf(replacement);
+					while (index != -1)
 					{
-						String fieldReferenceValue = globalVariables.get(fieldReference).getType();
-						
-						String regex = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("0").getType();
-						String replacement = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("1").getType();
-						
-						// Takes the regex and replacement string and replaces the contents at that field variable.
-						String result = fieldReferenceValue.replaceAll(regex, replacement);
-						
-						// Overrides the existing field reference string with the new one.
-						globalVariables.put(fieldReference, new InterpreterDataType(result));
+						totalSubstitutions++;
+						index = result.indexOf(replacement, index + 1);
 					}
+					
+					// Changes the value in the IDT.
+					IDT.setType(result);
+					
+					return Integer.toString(totalSubstitutions);
 				}
 				// Assumes it will work on $0 (whole line) if no target is given.
 				else
 				{
 					// Gets the string that is held by the field value.
-					String fieldReferenceValue = globalVariables.get("$0").getType();
+					InterpreterDataType globalIDT = globalVariables.get("$0");
+					String globalIDTtype = globalIDT.getType();
 					
 					String regex = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("0").getType();
 					String replacement = ((InterpreterArrayDataType) gsubParameters).getArrayType().get("1").getType();
 					
 					// Takes the regex and replacement string and replaces the contents at that field variable.
-					String result = fieldReferenceValue.replaceAll(regex, replacement);
+					String result = globalIDTtype.replaceAll(regex, replacement);
+					
+					// Counts the total number of substitutions made so it can return it.
+					int totalSubstitutions = 0;
+					int index = result.indexOf(replacement);
+					while (index != -1)
+					{
+						totalSubstitutions++;
+						index = result.indexOf(replacement, index + 1);
+					}
 					
 					// Overrides the existing field reference string with the new one.
-					globalVariables.put("$0", new InterpreterDataType(result));
+					globalIDT.setType(result);
+					
+					return Integer.toString(totalSubstitutions);
 				}
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in gsub statement.");
-			
-			return null;
 		}));
 		
 		functions.put("index", new BuiltInFunctionDefinitionNode(false, (indexParameters) -> 
 		{
 			if(indexParameters instanceof InterpreterArrayDataType)
 			{
-				String mainString = ((InterpreterArrayDataType) indexParameters).getArrayType().get("0").getType();
-				// Checks if the string being checked is a field reference or some other string containing variable.
-				if(globalVariables.containsKey(mainString))
-				{
-					String in = globalVariables.get(mainString).getType();
-					// Gets the substring to be found.
-					String find = ((InterpreterArrayDataType) indexParameters).getArrayType().get("1").getType();
-					
-					int position = in.indexOf(find);
-					
-					if (position != -1)
-						return Integer.toString(++position);
-					// Returns 0 when no character was found.
-					else
-						return "0";
-				}
-				// We will assume the mainString contains what we want to work on since the variable doesn't exist.
+				InterpreterDataType IDT = ((InterpreterArrayDataType) indexParameters).getArrayType().get("0");
+				
+				String in = ((InterpreterArrayDataType) indexParameters).getArrayType().get("0").getType();
+				String find = ((InterpreterArrayDataType) indexParameters).getArrayType().get("1").getType();
+				
+				int position = in.indexOf(find);
+				
+				if (position != -1)
+					return Integer.toString(++position);
+				// Returns 0 when no character was found.
 				else
-				{
-					String find = ((InterpreterArrayDataType) indexParameters).getArrayType().get("1").getType();
-					
-					int position = mainString.indexOf(find);
-					
-					if (position != -1)
-						return Integer.toString(++position);
-					// Returns 0 when no character was found.
-					else
-						return "0";
-				}
+					return "0";
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in index statement.");
@@ -285,15 +284,7 @@ public class Interpreter
 		// Simply returns the length of the string.
 		functions.put("length", new BuiltInFunctionDefinitionNode(false, (lengthParameters) -> 
 		{
-			// Extracts the parameter to check if it is a variable key (in this case field reference)
-			String stringLength = lengthParameters.getType();
-			if(globalVariables.containsKey(stringLength))
-			{
-				String referenceVariableLength = globalVariables.get(stringLength).getType();
-				return Integer.toString(referenceVariableLength.length());
-			}
-			else
-				return Integer.toString(lengthParameters.getType().length());
+			return Integer.toString(lengthParameters.getType().length());
 		}));
 		
 		functions.put("match", new BuiltInFunctionDefinitionNode(false, (matchParameters) -> 
@@ -307,74 +298,38 @@ public class Interpreter
 				else if (totalEntries == 1)
 					throw new IllegalArgumentException("match must contain a regex.");
 				
-				// Gets the first parameter.
+				// Gets the string and regex to be used to find the match.
 				String mainString = ((InterpreterArrayDataType) matchParameters).getArrayType().get("0").getType();
-				// Checks if the first parameter is a field reference/variable
-				if(globalVariables.containsKey(mainString))
-				{
-					String matchString = globalVariables.get(mainString).getType();
-					String regex = ((InterpreterArrayDataType) matchParameters).getArrayType().get("1").getType();
-					
-			        Pattern pattern = Pattern.compile(regex);
-			        Matcher matcher = pattern.matcher(matchString);
-
-			        int longestStart = -1;
-			        
-			        // Finds the longest, leftmost substring matched by the regex.
-			        while (matcher.find()) 
-			        {
-			            int start = matcher.start();
-
-			            if (longestStart == -1 || start < longestStart) 
-			            {
-			                longestStart = start;
-			            }
-			        }
-			        
-			        // Returns the index where the substring begins.
-			        if (longestStart != -1) 
-			        {
-			            return Integer.toString(++longestStart); // Increments the count since Java starts at 0
-			        } 
-			        // Returns 0 if no match was found.
-			        else 
-			        {
-			            return "0";
-			        }
-				}
+				String regex = ((InterpreterArrayDataType) matchParameters).getArrayType().get("1").getType();
 				
-				// Same as before but assumes that the value of mainString is a string, not a variable.
-				else
-				{
-					String regex = ((InterpreterArrayDataType) matchParameters).getArrayType().get("1").getType();
-					
-			        Pattern pattern = Pattern.compile(regex);
-			        Matcher matcher = pattern.matcher(mainString);
+				// Uses Java's pattern and matcher to find a match.
+		        Pattern pattern = Pattern.compile(regex);
+		        Matcher matcher = pattern.matcher(mainString);
 
-			        int longestStart = -1;
-			        
-			        // Finds the longest, leftmost substring matched by the regex.
-			        while (matcher.find()) 
-			        {
-			            int start = matcher.start();
+		        int longestStart = -1;
+		        
+		        // Finds the longest, leftmost substring matched by the regex.
+		        while (matcher.find()) 
+		        {
+		            int start = matcher.start();
 
-			            if (longestStart == -1 || start < longestStart) 
-			            {
-			                longestStart = start;
-			            }
-			        }
-			        
-			        // Returns the index where the substring begins.
-			        if (longestStart != -1) 
-			        {
-			            return Integer.toString(++longestStart); // Increments the count since Java starts at 0
-			        } 
-			        // Returns 0 if no match was found.
-			        else 
-			        {
-			            return "0";
-			        }
-				}
+		            if (longestStart == -1 || start < longestStart) 
+		            {
+		                longestStart = start;
+		            }
+		        }
+		        
+		        // Returns the index where the substring begins.
+		        if (longestStart != -1) 
+		        {
+		            return Integer.toString(++longestStart); // Increments the count since Java starts at 0
+		        } 
+		        // Returns 0 if no match was found.
+		        else 
+		        {
+		            return "0";
+		        }
+				
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in match statement.");
@@ -397,38 +352,17 @@ public class Interpreter
 				// Checks if a field separator was provided.
 				if (((InterpreterArrayDataType) splitParameters).getArrayType().containsKey("2"))
 				{
-					if (globalVariables.containsKey(mainString))
-					{
-						String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
-						String pieces[] = globalVariables.get(mainString).getType().split(separator);
-						
-						return Integer.toString(pieces.length);
-					}
+					String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
+					String pieces[] = mainString.split(separator);
 					
-					else
-					{
-						String separator = ((InterpreterArrayDataType) splitParameters).getArrayType().get("2").getType();
-						String pieces[] = mainString.split(separator);
-						
-						return Integer.toString(pieces.length);
-					}
+					return Integer.toString(pieces.length);
 				}
 				// Assumes that the separator is a whitespace.
 				else
 				{
-					if (globalVariables.containsKey(mainString))
-					{
-						String pieces[] = globalVariables.get(mainString).getType().split(" ");
-						
-						return Integer.toString(pieces.length);
-					}
+					String pieces[] = mainString.split(" ");
 					
-					else
-					{
-						String pieces[] = mainString.split(" ");
-						
-						return Integer.toString(pieces.length);
-					}
+					return Integer.toString(pieces.length);
 				}
 			}
 			else
@@ -455,6 +389,7 @@ public class Interpreter
 				// Checks to see if there is a target string (target should typically be a variable otherwise substitution gets lost).
 				if(((InterpreterArrayDataType) subParameters).getArrayType().containsKey("2"))
 				{
+					InterpreterDataType IDT = ((InterpreterArrayDataType) subParameters).getArrayType().get("2");
 					int hasSubbed = 0; // Gets incremented once and returned to identify if a sub happened.
 					String target = ((InterpreterArrayDataType) subParameters).getArrayType().get("2").getType();
 					String regex = ((InterpreterArrayDataType) subParameters).getArrayType().get("0").getType();
@@ -470,6 +405,7 @@ public class Interpreter
 			            int end = matcher.end();
 			            
 			            target = target.substring(0, start) + replacement + target.substring(end);
+			            IDT.setType(target); // Inserts the new string
 			            hasSubbed++;
 			        }
 			        // Returns 0 if nothing was found or 1 if it was found.
@@ -478,6 +414,7 @@ public class Interpreter
 				// Will work on $0 (whole line) if no target is found.
 				else
 				{
+					InterpreterDataType IDT = globalVariables.get("$0");
 					int hasSubbed = 0; // Gets incremented once and returned to identify if a sub happened.
 					String target = globalVariables.get("$0").getType();
 					String regex = ((InterpreterArrayDataType) subParameters).getArrayType().get("0").getType();
@@ -493,7 +430,7 @@ public class Interpreter
 			            int end = matcher.end();
 			            
 			            target = target.substring(0, start) + replacement + target.substring(end);
-			            globalVariables.put("$0", new InterpreterDataType(target)); // Inserts the new string
+			            IDT.setType(target); // Inserts the new string
 			            
 			            hasSubbed++;
 			        }

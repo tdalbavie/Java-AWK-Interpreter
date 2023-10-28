@@ -182,6 +182,7 @@ public class UnitTest
 	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "This is some more text with a 5.");
 	}
 	
+	// Split is in an incomplete state and can't save the array but we can still test the return (number of elements created in the array).
 	@Test
 	public void splitTest()
 	{
@@ -271,10 +272,12 @@ public class UnitTest
 	    
 	    BuiltInFunctionDefinitionNode index = (BuiltInFunctionDefinitionNode) interpreter.functions.get("index");
 	    
+	    // Creates the parameters for the index function.
 	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
 	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$0"));
 	    parameters.getArrayType().put("1", new InterpreterDataType("Test"));
 	    
+	    // Returns the starting character index of the matching string.
 	    Assert.assertEquals(index.execute(parameters), "11");
 	}
 	
@@ -294,16 +297,27 @@ public class UnitTest
 	    
 	    BuiltInFunctionDefinitionNode gsub = (BuiltInFunctionDefinitionNode) interpreter.functions.get("gsub");
 	    
-	    // This will skip to the third line so it can test when multiple numbers are encountered.
-	    interpreter.lm.SplitAndAssign();
+	    // This will skip to the second line so it can test when multiple numbers are encountered.
 	    interpreter.lm.SplitAndAssign();
 	    
-
 	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    
+	    // Changes the value of $3 on line 2.
+	    Assert.assertEquals(interpreter.globalVariables.get("$3").getType(), "some");
+	    parameters.getArrayType().put("0", new InterpreterDataType("some"));
+	    parameters.getArrayType().put("1", new InterpreterDataType("a lot"));
+	    parameters.getArrayType().put("2", interpreter.globalVariables.get("$3"));
+	    Assert.assertEquals(gsub.execute(parameters), "1"); // Returns total substitutions.
+	    Assert.assertEquals(interpreter.globalVariables.get("$3").getType(), "a lot");
+	    
+	    // Gets the third line for work with regex.
+	    interpreter.lm.SplitAndAssign();
+	    
+	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "11111");
 	    parameters.getArrayType().put("0", new InterpreterDataType("[0-9]"));
 	    parameters.getArrayType().put("1", new InterpreterDataType("5"));
-	    
-	    gsub.execute(parameters);
+	    parameters.getArrayType().remove("2"); // Removes the target parameter from earlier.
+	    Assert.assertEquals(gsub.execute(parameters), "5"); // Returns total substitutions.
 	    // Replaces 11111 with 55555.
 	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "55555");
 	}
