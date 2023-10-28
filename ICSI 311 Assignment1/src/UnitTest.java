@@ -141,6 +141,17 @@ public class UnitTest
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
 	    BuiltInFunctionDefinitionNode substr = (BuiltInFunctionDefinitionNode) interpreter.functions.get("substr");
+	    
+	    InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+	    parameters.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    parameters.getArrayType().put("1", new InterpreterDataType("9"));
+	    
+	    Assert.assertEquals(substr.execute(parameters), "A Test File With Some Text.");
+	    
+	    // Adds the option length parameter.
+	    parameters.getArrayType().put("2", new InterpreterDataType("11"));
+	    
+	    Assert.assertEquals(substr.execute(parameters), "A Test File");
 	}
 	
 	@Test
@@ -295,7 +306,6 @@ public class UnitTest
 	    gsub.execute(parameters);
 	    // Replaces 11111 with 55555.
 	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "55555");
-	    
 	}
 	
 	@Test
@@ -350,7 +360,7 @@ public class UnitTest
 	// I added SplitAndAssign into the constructor for now to initialize the field references for the first line.
 	// This will likely be changed later but I did it this way so I can easily test if SplitAndAssign works.
 	@Test
-	public void SplitAndAssignTest()
+	public void LineManagerTest()
 	{
 		// Only using this to initialize interpreter but will not be doing anything with the program node yet.
 		Lexer lexer = new Lexer("{break\r\n}");
@@ -373,6 +383,8 @@ public class UnitTest
 	    Assert.assertEquals(interpreter.globalVariables.get("$6").getType(), "With");
 	    Assert.assertEquals(interpreter.globalVariables.get("$7").getType(), "Some");
 	    Assert.assertEquals(interpreter.globalVariables.get("$8").getType(), "Text.");
+	    Assert.assertEquals(interpreter.globalVariables.get("NF").getType(), "8");
+	    Assert.assertEquals(interpreter.globalVariables.get("NR").getType(), "1");
 	}
 	
 	// This tests the changes final changes in the parser, assume parameters are correct.

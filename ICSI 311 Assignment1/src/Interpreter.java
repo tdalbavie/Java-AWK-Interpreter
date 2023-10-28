@@ -520,17 +520,17 @@ public class Interpreter
 				if(((InterpreterArrayDataType) substrParameters).getArrayType().containsKey("2"))
 				{
 					String string = ((InterpreterArrayDataType) substrParameters).getArrayType().get("0").getType();
-					// Start and end subtracted by one since AWK's first character index starts at 1 unlike Java.
+					// Start subtracted by one since AWK's first character index starts at 1 unlike Java.
 					int start = Integer.parseInt(((InterpreterArrayDataType) substrParameters).getArrayType().get("1").getType()) - 1;
-					int end = Integer.parseInt(((InterpreterArrayDataType) substrParameters).getArrayType().get("2").getType()) - 1;
+					int length = Integer.parseInt(((InterpreterArrayDataType) substrParameters).getArrayType().get("2").getType()) + start;
 					
-					return string.substring(start, end);
+					return string.substring(start, length);
 				}
 				// If no end length is provided, assume the whole suffix.
 				else
 				{
 					String string = ((InterpreterArrayDataType) substrParameters).getArrayType().get("0").getType();
-					// Start and end subtracted by one since AWK's first character index starts at 1 unlike Java.
+					// Start subtracted by one since AWK's first character index starts at 1 unlike Java.
 					int start = Integer.parseInt(((InterpreterArrayDataType) substrParameters).getArrayType().get("1").getType()) - 1;
 					
 					return string.substring(start);
