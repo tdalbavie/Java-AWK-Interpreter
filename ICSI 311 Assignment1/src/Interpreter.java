@@ -488,4 +488,116 @@ public class Interpreter
 		}));
 		
 	}
+	
+	public InterpreterDataType GetIDT(Node node, Optional<HashMap<String, InterpreterDataType>> localVariables)
+	{
+		// Checks what type of instance node is.
+		if (node instanceof AssignmentNode)
+		{
+			// Create an AssignmentNode so we can more easily work on it.
+			AssignmentNode an = (AssignmentNode) node;
+			
+			if (an.getTarget() instanceof VariableReferenceNode)
+			{
+				VariableReferenceNode target = (VariableReferenceNode) an.getTarget();
+				InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
+				
+				// Puts the new assignment into the globalVariables HashMap.
+				globalVariables.put(target.getName(), result);
+				
+				return result;
+			}
+			
+			// Checks for OperationNode and then checks for a field reference operation.
+			else if (an.getTarget() instanceof OperationNode)
+			{
+				OperationNode target = (OperationNode) an.getTarget();
+				if (target.getOperation() == OperationNode.operations.DOLLAR)
+				{
+					InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
+					// Gets the expression result in the left node of the field reference OperationNode.
+					InterpreterDataType targetExpression = GetIDT(target.getLeftNode(), localVariables);
+					
+					String targetName = "$" + targetExpression.getType();
+					
+					// Puts the new assignment into the globalVariables HashMap.
+					globalVariables.put(targetName, result);
+					
+					return result;
+				}
+				
+				// Throws an exception when the OperationNode is not a field reference.
+				else
+					throw new IllegalArgumentException("Assignment must start with a variable or field reference.");
+			}
+			// Throws an exceptions when the target is something other than a VariableReferenceNode or OperationNode.
+			else
+				throw new IllegalArgumentException("Assignment must start with a variable or field reference.");
+		}
+		
+		// Returns a new IDT with the value set to the constant node's value.
+		if (node instanceof ConstantNode)
+		{
+			ConstantNode cn = (ConstantNode) node;
+			return new InterpreterDataType(cn.getConstantValue());
+		}
+		
+		// Currently not working, this will be fully implemented later.
+		if (node instanceof FunctionCallNode)
+		{
+			FunctionCallNode fcn = (FunctionCallNode) node;
+			String FunctionCall = RunFunctionCall(fcn, localVariables.get());
+			return new InterpreterDataType(FunctionCall);
+		}
+		
+		// A PatternNode should not be found when passing to a function or assignment, an exception will be thrown.
+		if (node instanceof PatternNode)
+		{
+			throw new IllegalArgumentException("Patterns cannot be used in functions or assignments.");
+		}
+		
+		if (node instanceof TernaryNode)
+		{
+			TernaryNode ternary = (TernaryNode) node;
+			InterpreterDataType bool = GetIDT(ternary.getExpression(), localVariables);
+		}
+		
+		if (node instanceof VariableReferenceNode)
+		{
+			VariableReferenceNode vrn = (VariableReferenceNode) node;
+			
+			if(vrn.getIndex().isPresent())
+			{
+				
+			}
+			
+			// If this is not an array reference.
+			else
+			{
+				String variableName = vrn.getName();
+				if (globalVariables.containsKey(variableName))
+				{
+					return globalVariables.get(variableName);
+				}
+				
+				if (localVariables.get().containsKey(variableName))
+				{
+					return localVariables.get().get(variableName);
+				}
+			}
+		}
+		
+		if (node instanceof OperationNode)
+		{
+			
+		}
+		
+		return null;
+	}
+	
+	// Returns an empty string for now, will be implemented later on.
+	public String RunFunctionCall(FunctionCallNode fcn, HashMap<String, InterpreterDataType> locals)
+	{
+		return "";
+	}
 }
