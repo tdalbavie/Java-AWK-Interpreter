@@ -9,6 +9,7 @@ public class VariableReferenceNode extends Node
 	public VariableReferenceNode(String name)
 	{
 		this.name = name;
+		index = Optional.empty();
 	}
 	
 	// For when an expression is present.

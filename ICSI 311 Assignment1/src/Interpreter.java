@@ -495,100 +495,27 @@ public class Interpreter
 			
 			if (an.getTarget() instanceof VariableReferenceNode)
 			{
-				VariableReferenceNode target = (VariableReferenceNode) an.getTarget();
+				// Evaluates the target value and get's its IDT then changes the value to the evaluated result.
+				InterpreterDataType target = GetIDT(an.getTarget(), localVariables);
 				InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
 				
-				// If an array index is presented.
-				if (target.getIndex().isPresent())
-				{
-					// Evaluates the index.
-					InterpreterDataType index = GetIDT(target.getIndex().get(), localVariables);
-					String indexName = index.getType();
-					
-					// Checks if this array already exists in global variables.
-					if (globalVariables.containsKey(target.getName()))
-					{
-						InterpreterDataType existingIndex = globalVariables.get(target.getName());
-						
-						if (existingIndex instanceof InterpreterArrayDataType)
-						{
-							InterpreterArrayDataType indices = (InterpreterArrayDataType) existingIndex;
-							indices.getArrayType().put(indexName, result);
-							
-							return result;
-						}
-						
-						else
-							throw new IllegalArgumentException("Cannot assign to an index of a non-array variable.");
-						
-					}
-					
-					else if (localVariables.isPresent())
-					{
-						// Checks if this array already exists in local variables.
-						if (localVariables.get().containsKey(target.getName()))
-						{
-							InterpreterDataType existingIndex = localVariables.get().get(target.getName());
-							
-							if (existingIndex instanceof InterpreterArrayDataType)
-							{
-								InterpreterArrayDataType indices = (InterpreterArrayDataType) existingIndex;
-								indices.getArrayType().put(indexName, result);
-								
-								return result;
-							}
-							
-							else
-								throw new IllegalArgumentException("Cannot assign to an index of a non-array variable.");
-						}
-						// Makes a new array in localVariables.
-						else
-						{
-							// Sets up the new array.
-							InterpreterArrayDataType indices = new InterpreterArrayDataType();
-							// Inputs the result into the provided index name.
-							indices.getArrayType().put(indexName, result);
-							// Creates a new array and puts it in localVariables.
-							localVariables.get().put(target.getName(), indices);
-						}
-					}
-					
-					// Makes a new array in globalVariables.
-					else
-					{
-						// Sets up the new array.
-						InterpreterArrayDataType indices = new InterpreterArrayDataType();
-						// Inputs the result into the provided index name.
-						indices.getArrayType().put(indexName, result);
-						// Creates a new array and puts it in globalVariables.
-						globalVariables.put(target.getName(), indices);
-					}
-				}
+				target.setType(result.getType());
 				
-				// Assumes that this is not an array.
-				else
-				{
-					// Puts the new assignment into the globalVariables HashMap.
-					globalVariables.put(target.getName(), result);
-					
-					return result;
-				}
+				return target;
 			}
 			
 			// Checks for OperationNode and then checks for a field reference operation.
 			else if (an.getTarget() instanceof OperationNode)
 			{
+				// Makes sure the OperationNode contains a Dollar operation.
 				OperationNode target = (OperationNode) an.getTarget();
 				if (target.getOperation() == OperationNode.operations.DOLLAR)
 				{
+					// Gets the IDT attached to the field reference.
+					InterpreterDataType targetValue = GetIDT(target, localVariables);
 					InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
-					// Gets the expression result in the left node of the field reference OperationNode.
-					InterpreterDataType targetExpression = GetIDT(target.getLeftNode(), localVariables);
 					
-					String targetName = targetExpression.getType();
-					
-					// Puts the new assignment into the globalVariables HashMap.
-					globalVariables.put(targetName, result);
+					targetValue.setType(result.getType());
 					
 					return result;
 				}
@@ -613,8 +540,8 @@ public class Interpreter
 		if (node instanceof FunctionCallNode)
 		{
 			FunctionCallNode fcn = (FunctionCallNode) node;
-			String FunctionCall = RunFunctionCall(fcn, localVariables.get());
-			return new InterpreterDataType(FunctionCall);
+			String FunctionCallResult = RunFunctionCall(fcn, localVariables.get());
+			return new InterpreterDataType(FunctionCallResult);
 		}
 		
 		// A PatternNode should not be found when passing to a function or assignment, an exception will be thrown.
@@ -653,32 +580,93 @@ public class Interpreter
 				// Resolves the index from the VariableReferenceNode array variable.
 				InterpreterDataType index = GetIDT(vrn.getIndex().get(), localVariables);
 				
+				// Checks if the array already exists in globalVariables.
 				if (globalVariables.containsKey(variableName))
 				{
 					InterpreterDataType indices = globalVariables.get(variableName);
 					// Checks if the value attached to the variable is an IADT to indicate an array.
 					if (indices instanceof InterpreterArrayDataType)
 					{
-						// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
-						return ((InterpreterArrayDataType) indices).getArrayType().get(index.getType());
+						InterpreterArrayDataType allIndices = (InterpreterArrayDataType) indices;
+						
+						// Checks if the index exists.
+						if (allIndices.getArrayType().containsKey(index.getType()))
+						{
+							// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
+							return allIndices.getArrayType().get(index.getType());
+						}
+						
+						// Creates a new index and returns it.
+						else	
+						{
+							// Adds a new entry for the new index with an empty value.
+							allIndices.getArrayType().put(index.getType(), new InterpreterDataType(""));
+							// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
+							return allIndices.getArrayType().get(index.getType());
+						}
 					}
-					// Throws an exception when the value is found but not an array.
+					// Throws an exception when the value is found but is not an array.
 					else
 						throw new IllegalArgumentException("Variable being referenced (" + vrn.getName() + ") is not an array.");
 				}
 				
-				if (localVariables.get().containsKey(variableName))
+				else if(localVariables.isPresent())
 				{
-					InterpreterDataType indices = localVariables.get().get(variableName);
-					// Checks if the value attached to the variable is an IADT to indicate an array.
-					if (indices instanceof InterpreterArrayDataType)
+					// Checks if the array already exists in localVariables.
+					if (localVariables.get().containsKey(variableName))
 					{
-						// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
-						return ((InterpreterArrayDataType) indices).getArrayType().get(index.getType());
+						InterpreterDataType indices = localVariables.get().get(variableName);
+						// Checks if the value attached to the variable is an IADT to indicate an array.
+						if (indices instanceof InterpreterArrayDataType)
+						{
+							InterpreterArrayDataType allIndices = (InterpreterArrayDataType) indices;
+							
+							// Checks if the index exists.
+							if (allIndices.getArrayType().containsKey(index.getType()))
+							{
+								// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
+								return allIndices.getArrayType().get(index.getType());
+							}
+							
+							// Creates a new index and returns it.
+							else	
+							{
+								// Adds a new entry for the new index with an empty value.
+								allIndices.getArrayType().put(index.getType(), new InterpreterDataType(""));
+								// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
+								return allIndices.getArrayType().get(index.getType());
+							}
+						}
+						// Throws an exception when the value is found but is not an array.
+						else
+							throw new IllegalArgumentException("Variable being referenced (" + vrn.getName() + ") is not an array.");
 					}
-					// Throws an exception when the value is found but not an array.
+					
+					// Creates a new array with the index if no array was found.
 					else
-						throw new IllegalArgumentException("Variable being referenced (" + vrn.getName() + ") is not an array.");
+					{
+						// Create the new array and add the index.
+						InterpreterArrayDataType IADT = new InterpreterArrayDataType();
+						IADT.getArrayType().put(index.getType(), new InterpreterDataType(""));
+						// Adds the new array to the globalVariables.
+						localVariables.get().put(variableName, IADT);
+						
+						// Returns the newly created IDT attached to the index.
+						return localVariables.get().get(variableName);
+					}
+				}
+				
+				// Creates a new array with the index if no array was found.
+				else
+				{
+					// Create the new array and add the index.
+					InterpreterArrayDataType IADT = new InterpreterArrayDataType();
+					IADT.getArrayType().put(index.getType(), new InterpreterDataType(""));
+					// Adds the new array to the globalVariables.
+					globalVariables.put(variableName, IADT);
+					
+					// Returns the newly created IDT attached to the index.
+					return globalVariables.get(variableName);
 				}
 			}
 			
@@ -735,20 +723,28 @@ public class Interpreter
 						 Pattern regex = Pattern.compile(pattern);
 						 Matcher matcher = regex.matcher(match);
 						 
-						 if(matcher.matches())
-						 {
-							 
-						 }
+						 // Returns an IDT with 1 to signify a match.
+						 if(matcher.find())
+							 return new InterpreterDataType("1");
 						 
 						 else
-						 {
-							 
-						 }
+							 return new InterpreterDataType("0");
 					 }
 					 
+					 // Does the same as Match but returns false if a match is found.
 					 if (operation.getOperation() == OperationNode.operations.NOTMATCH)
 					 {
+						 String match = left.getType();
 						 
+						 Pattern regex = Pattern.compile(pattern);
+						 Matcher matcher = regex.matcher(match);
+						 
+						 // Returns an IDT with 1 to signify a match.
+						 if(matcher.find())
+							 return new InterpreterDataType("0");
+						 
+						 else
+							 return new InterpreterDataType("1");
 					 }
 				 }
 				 
@@ -1226,7 +1222,8 @@ public class Interpreter
 				 {
 					 try
 					 {
-						 float leftFloat = Float.parseFloat(left.toString());
+						 // Truncates decimal values and evaluates it as a whole number.
+						 int leftFloat = Integer.parseInt(left.getType());
 						 String variableReferenceName = "$" + leftFloat;
 						 
 						 // If the field reference already exists it will get the value and return it.
@@ -1258,7 +1255,7 @@ public class Interpreter
 					 
 					 // Checks if left is false (empty string or "0").
 					 // Returns true since not does the opposite.
-					 if (leftString.isEmpty() && leftString.equals("0"))
+					 if (leftString.isEmpty() || leftString.equals("0"))
 						 return new InterpreterDataType("1");
 					 
 					// Returns false since if it evaluates to true it does the opposite.
@@ -1266,9 +1263,21 @@ public class Interpreter
 						 return new InterpreterDataType("0");
 				 }
 				 
+				 // This only force converts a non-integer string to 0 so it can be evaluated as a number.
 				 if (operation.getOperation() == OperationNode.operations.UNARYPOS)
 				 {
-					 return left;
+					// Checks if value is convertible to float.
+					 try
+					 {
+						 String leftString = left.getType();
+						 float leftFloat = Float.parseFloat(leftString);
+						 return new InterpreterDataType(Float.toString(leftFloat));
+					 }
+					// Assumes a non-integer string and simply sets the value to 0.
+					 catch (NumberFormatException e)
+					 {
+						 return new InterpreterDataType("0");
+					 }
 				 }
 				 
 				 if (operation.getOperation() == OperationNode.operations.UNARYNEG)

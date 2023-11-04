@@ -9,8 +9,436 @@ import org.junit.Test;
 
 public class UnitTest 
 {
-	// For print and printf I will not use JUnit, I will simply print it in the console.
-	// I have no reason to test if a Java function works or not, it's almost guaranteed.
+	@Test
+	public void assignmentNodeTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Creates a new variable a and assigns 5 to a (a = 5).
+		VariableReferenceNode vrn = new VariableReferenceNode("a");
+		ConstantNode cn = new ConstantNode("5");
+		AssignmentNode an = new AssignmentNode(vrn, cn);
+		
+		interpreter.GetIDT(an, Optional.empty());
+		
+		Assert.assertTrue(interpreter.globalVariables.containsKey("a"));
+		Assert.assertEquals(interpreter.globalVariables.get("a").getType(), "5");
+		
+	}
+	
+	@Test
+	public void constantNodeTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Will return the IDT containing it's value.
+		ConstantNode cn = new ConstantNode("Hello");
+		InterpreterDataType result = interpreter.GetIDT(cn, Optional.empty());
+		
+		Assert.assertEquals(result.getType(), "Hello");
+	}
+	
+	@Test
+	public void functionCallNodeTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// This will only return an empty string since RunFunctionCall does nothing right now.
+		LinkedList<Node> emptyParameters = new LinkedList<Node>();
+		// No parameters will be provided since nothing is currently happening.
+		FunctionCallNode fcn = new FunctionCallNode("myFunction", emptyParameters);
+		
+		// FunctionCalls must give a localVariables HashMap since all variables inside functions are local.
+		HashMap<String, InterpreterDataType> localVariables = new HashMap<String, InterpreterDataType>();
+		
+		InterpreterDataType result = interpreter.GetIDT(fcn, Optional.of(localVariables));
+		
+		Assert.assertEquals(result.getType(), "");
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void patternNodeTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Just using a simple string since this is purely for error checking.
+		PatternNode pn = new PatternNode("A pattern.");
+		
+		interpreter.GetIDT(pn, Optional.empty());
+	}
+	
+	@Test
+	public void ternaryNodeTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Tests both true and false cases.
+		ConstantNode trueBool = new ConstantNode("Not Empty.");
+		ConstantNode falseBool = new ConstantNode("");
+		ConstantNode trueCase = new ConstantNode("This is true.");
+		ConstantNode falseCase = new ConstantNode("This is false.");
+		// Puts a true expression in the ternary.
+		TernaryNode trueTN = new TernaryNode(trueBool, trueCase, falseCase);
+		// Puts a false expression in the ternary.
+		TernaryNode falseTN = new TernaryNode(falseBool, trueCase, falseCase);
+		
+		InterpreterDataType trueIDT = interpreter.GetIDT(trueTN, Optional.empty());
+		InterpreterDataType falseIDT = interpreter.GetIDT(falseTN, Optional.empty());
+		
+		Assert.assertEquals(trueIDT.getType(), "This is true.");
+		Assert.assertEquals(falseIDT.getType(), "This is false.");
+	}
+	
+	@Test
+	public void variableReferenceNodeTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Scalars are tested in AssignmentNode, I will test array's here.
+		ConstantNode indexName = new ConstantNode("apple");
+		VariableReferenceNode arrayVRN = new VariableReferenceNode("fruits", Optional.of(indexName));
+		
+		interpreter.GetIDT(arrayVRN, Optional.empty());
+		
+		// Creates a second index for this array.
+		indexName = new ConstantNode("orange");
+		arrayVRN = new VariableReferenceNode("fruits", Optional.of(indexName));
+		
+		interpreter.GetIDT(arrayVRN, Optional.empty());
+		
+		// Checks for the existence of the array variable.
+		Assert.assertTrue(interpreter.globalVariables.containsKey("fruits"));
+		
+		InterpreterArrayDataType indices = (InterpreterArrayDataType) interpreter.globalVariables.get("fruits");
+		
+		// Only checking for existence of new indices as no value would have been assigned to them.
+		Assert.assertTrue(indices.getArrayType().containsKey("apple"));
+		Assert.assertTrue(indices.getArrayType().containsKey("orange"));
+	}
+	
+	@Test
+	public void operationNodeMathTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Does simple math operations on the two numbers.
+		ConstantNode num1 = new ConstantNode("10");
+		ConstantNode num2 = new ConstantNode("5");
+		// Creates an OperationNode for each operation, Strings will have a .0 at the end since it's float converted to string.
+		OperationNode Add = new OperationNode(OperationNode.operations.ADD, num1, Optional.of(num2));
+		OperationNode Subtract = new OperationNode(OperationNode.operations.SUBTRACT, num1, Optional.of(num2));
+		OperationNode Multiply = new OperationNode(OperationNode.operations.MULTIPLY, num1, Optional.of(num2));
+		OperationNode Divide = new OperationNode(OperationNode.operations.DIVIDE, num1, Optional.of(num2));
+		OperationNode Exponent = new OperationNode(OperationNode.operations.EXPONENT, num1, Optional.of(num2));
+		OperationNode Mod = new OperationNode(OperationNode.operations.MODULO, num1, Optional.of(num2));
+		
+		// Checks for the result of addition.
+		InterpreterDataType result = interpreter.GetIDT(Add, Optional.empty());
+		Assert.assertEquals(result.getType(), "15.0");
+		
+		// Checks for the result of subtraction.
+		result = interpreter.GetIDT(Subtract, Optional.empty());
+		Assert.assertEquals(result.getType(), "5.0");
+		
+		// Checks for the result of multiplication.
+		result = interpreter.GetIDT(Multiply, Optional.empty());
+		Assert.assertEquals(result.getType(), "50.0");
+		
+		// Checks for the result of division.
+		result = interpreter.GetIDT(Divide, Optional.empty());
+		Assert.assertEquals(result.getType(), "2.0");
+		
+		// Checks for the result of exponentiation.
+		result = interpreter.GetIDT(Exponent, Optional.empty());
+		Assert.assertEquals(result.getType(), "100000.0");
+		
+		// Checks for the result of modulo.
+		result = interpreter.GetIDT(Mod, Optional.empty());
+		Assert.assertEquals(result.getType(), "0.0");
+	}
+	
+	@Test
+	public void operationNodeCompareTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		// This will hold the result from each operation.
+		InterpreterDataType result;
+		
+		// Number comparisons.
+		ConstantNode num1 = new ConstantNode("10");
+		ConstantNode num2 = new ConstantNode("10");
+		
+		OperationNode numEquals = new OperationNode(OperationNode.operations.EQ, num1, Optional.of(num2));
+		OperationNode numNotEquals = new OperationNode(OperationNode.operations.NE, num1, Optional.of(num2));
+		OperationNode numLessThan = new OperationNode(OperationNode.operations.LT, num1, Optional.of(num2));
+		OperationNode numLessThanOrEquals = new OperationNode(OperationNode.operations.LE, num1, Optional.of(num2));
+		OperationNode numGreaterThan = new OperationNode(OperationNode.operations.GT, num1, Optional.of(num2));
+		OperationNode numGreaterThanOrEquals = new OperationNode(OperationNode.operations.GE, num1, Optional.of(num2));
+		
+		// Checks if the numbers are equal.
+		result = interpreter.GetIDT(numEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Checks if the numbers are not equal.
+		result = interpreter.GetIDT(numNotEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if num1 is less than num2.
+		result = interpreter.GetIDT(numLessThan, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if num1 is less than or equal to num2.
+		result = interpreter.GetIDT(numLessThanOrEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Checks if num1 is greater than num2.
+		result = interpreter.GetIDT(numGreaterThan, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if num1 is greater than or equal to num2.
+		result = interpreter.GetIDT(numGreaterThanOrEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// String comparisons.
+		ConstantNode str1 = new ConstantNode("string1");
+		ConstantNode str2 = new ConstantNode("string2");
+		
+		OperationNode strEquals = new OperationNode(OperationNode.operations.EQ, str1, Optional.of(str2));
+		OperationNode strNotEquals = new OperationNode(OperationNode.operations.NE, str1, Optional.of(str2));
+		OperationNode strLessThan = new OperationNode(OperationNode.operations.LT, str1, Optional.of(str2));
+		OperationNode strLessThanOrEquals = new OperationNode(OperationNode.operations.LE, str1, Optional.of(str2));
+		OperationNode strGreaterThan = new OperationNode(OperationNode.operations.GT, str1, Optional.of(str2));
+		OperationNode strGreaterThanOrEquals = new OperationNode(OperationNode.operations.GE, str1, Optional.of(str2));
+		
+		// Checks if the strings are equal.
+		result = interpreter.GetIDT(strEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if the strings are not equal.
+		result = interpreter.GetIDT(strNotEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Checks if str1 is less than str2.
+		result = interpreter.GetIDT(strLessThan, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Checks if str1 is less than or equal to str2.
+		result = interpreter.GetIDT(strLessThanOrEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Checks if str1 is greater than str2.
+		result = interpreter.GetIDT(strGreaterThan, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if str1 is greater than or equal to str2.
+		result = interpreter.GetIDT(strGreaterThanOrEquals, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+	}
+	
+	@Test
+	public void operationNodeBooleanTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		// This will hold the result from each operation.
+		InterpreterDataType result;
+		
+		ConstantNode str1 = new ConstantNode("string");
+		ConstantNode str2 = new ConstantNode("");
+		
+		OperationNode and = new OperationNode(OperationNode.operations.AND, str1, Optional.of(str2));
+		OperationNode or = new OperationNode(OperationNode.operations.OR, str1, Optional.of(str2));
+		OperationNode not1 = new OperationNode(OperationNode.operations.NOT, str1);
+		OperationNode not2 = new OperationNode(OperationNode.operations.NOT, str2);
+		
+		// Both strings must contain something other than "" or "0".
+		result = interpreter.GetIDT(and, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// One string must contain something other than "" or "0".
+		result = interpreter.GetIDT(or, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Returns true of it's empty.
+		result = interpreter.GetIDT(not1, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Returns true of it's empty.
+		result = interpreter.GetIDT(not2, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+	}
+	
+	@Test
+	public void operationNodeMatchTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		// This will hold the result from each operation.
+		InterpreterDataType result;
+		
+		PatternNode pattern1 = new PatternNode("fox");
+		PatternNode pattern2 = new PatternNode("cat");
+		ConstantNode string = new ConstantNode("The quick brown fox jumps over the lazy dog.");
+		
+		OperationNode match1 = new OperationNode(OperationNode.operations.MATCH, string, Optional.of(pattern1));
+		OperationNode notmatch1 = new OperationNode(OperationNode.operations.NOTMATCH, string, Optional.of(pattern1));
+		OperationNode match2 = new OperationNode(OperationNode.operations.MATCH, string, Optional.of(pattern2));
+		OperationNode notmatch2 = new OperationNode(OperationNode.operations.NOTMATCH, string, Optional.of(pattern2));
+		
+		// Checks if the pattern "fox" is in the string and returns true.
+		result = interpreter.GetIDT(match1, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+		
+		// Checks if the pattern "fox" is in the string and return false.
+		result = interpreter.GetIDT(notmatch1, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if the pattern "cat" is in the string and return false.
+		result = interpreter.GetIDT(match2, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Checks if the pattern "cat" is in the string and returns true.
+		result = interpreter.GetIDT(notmatch2, Optional.empty());
+		Assert.assertEquals(result.getType(), "1");
+	}
+	
+	@Test
+	public void operationNodeDollarTest()
+	{
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.of(myPath));
+		// This will hold the result from each operation.
+		InterpreterDataType result;
+		
+		// This will generate the fieldReferences for the first line in the file.
+		interpreter.lm.SplitAndAssign();
+		
+		ConstantNode fieldReferenceNum1 = new ConstantNode("5");
+		ConstantNode fieldReferenceNum2 = new ConstantNode("100");
+		OperationNode fieldReference1 = new OperationNode(OperationNode.operations.DOLLAR, fieldReferenceNum1);
+		OperationNode fieldReference2 = new OperationNode(OperationNode.operations.DOLLAR, fieldReferenceNum2);
+		
+		// This will return the existing IDT at "$5".
+		result = interpreter.GetIDT(fieldReference1, Optional.empty());
+		Assert.assertEquals(result.getType(), "File");
+		
+		// This will create a new field reference "$100" and return the new IDT.
+		result = interpreter.GetIDT(fieldReference2, Optional.empty());
+		Assert.assertEquals(result.getType(), "");
+		Assert.assertTrue(interpreter.globalVariables.containsKey("$100"));
+	}
+	
+	@Test
+	public void operationNodeIndDecUnaryTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		// This will hold the result from each operation.
+		InterpreterDataType result;
+		
+		// Creates a new variable a and assigns 5 to a (a = 5).
+		VariableReferenceNode vrn = new VariableReferenceNode("a");
+		ConstantNode num = new ConstantNode("5");
+		AssignmentNode an = new AssignmentNode(vrn, num);
+		interpreter.GetIDT(an, Optional.empty());
+		
+		// This will be used for Unary Positive.
+		ConstantNode str = new ConstantNode("string");
+		
+		// Uses variable a to change the value inside the globalVariables HashMap.
+		OperationNode preinc = new OperationNode(OperationNode.operations.PREINC, vrn);
+		OperationNode postinc = new OperationNode(OperationNode.operations.POSTINC, vrn);
+		OperationNode predec = new OperationNode(OperationNode.operations.PREDEC, vrn);
+		OperationNode postdec = new OperationNode(OperationNode.operations.POSTDEC, vrn);
+		OperationNode unarypos = new OperationNode(OperationNode.operations.UNARYPOS, str);
+		OperationNode unaryneg = new OperationNode(OperationNode.operations.UNARYNEG, vrn);
+		
+		// Pre-increment returns updated value.
+		result = interpreter.GetIDT(preinc, Optional.empty());
+		Assert.assertEquals(result.getType(), "6.0");
+		Assert.assertEquals(interpreter.globalVariables.get("a").getType(), "6.0");
+		
+		// Post-increment returns original value (original value is 6 from previous increment).
+		result = interpreter.GetIDT(postinc, Optional.empty());
+		Assert.assertEquals(result.getType(), "6.0");
+		Assert.assertEquals(interpreter.globalVariables.get("a").getType(), "7.0");
+		
+		// Pre-decremented returns updated value (reduces to 6 from previous increment).
+		result = interpreter.GetIDT(predec, Optional.empty());
+		Assert.assertEquals(result.getType(), "6.0");
+		Assert.assertEquals(interpreter.globalVariables.get("a").getType(), "6.0");
+		
+		// Post-increment returns original value (original value is 6 from previous decrement).
+		result = interpreter.GetIDT(postdec, Optional.empty());
+		Assert.assertEquals(result.getType(), "6.0");
+		Assert.assertEquals(interpreter.globalVariables.get("a").getType(), "5.0");
+		
+		/* 
+		 * Unary Positive only force converts a string that could not be converted to float and returns it as 0 to be evaluated as a number.
+		 * Normal AWK evaluates comparisons as strings unless force changed by Unary Positive but we do this already in our comparison implementation.
+		 * In this case we have a non-integer string so this will return 0.
+		 */
+		result = interpreter.GetIDT(unarypos, Optional.empty());
+		Assert.assertEquals(result.getType(), "0");
+		
+		// Turns the number negative (in this case the value of a which is 5) or string to 0.
+		result = interpreter.GetIDT(unaryneg, Optional.empty());
+		Assert.assertEquals(result.getType(), "-5.0");
+	}
+	
+	@Test
+	public void operationNodeConcatenationTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		// This will hold the result from each operation.
+		InterpreterDataType result;
+		
+		ConstantNode str1 = new ConstantNode("Hello ");
+		ConstantNode str2 = new ConstantNode("World!");
+		
+		OperationNode concat = new OperationNode(OperationNode.operations.CONCATENATION, str1, Optional.of(str2));
+		
+		// Concatenates the strings.
+		result = interpreter.GetIDT(concat, Optional.empty());
+		Assert.assertEquals(result.getType(), "Hello World!");
+	}
+	
+	@Test
+	public void operationNodeArrayMembershipTest()
+	{
+		// Creates a dummy interpreter for testing GetIDT.
+		Interpreter interpreter = new Interpreter(new ProgramNode(), Optional.empty());
+		
+		// Scalars are tested in AssignmentNode, I will test array's here.
+		ConstantNode indexName = new ConstantNode("apple");
+		VariableReferenceNode arrayVRN = new VariableReferenceNode("fruits", Optional.of(indexName));
+		
+		interpreter.GetIDT(arrayVRN, Optional.empty());
+		
+		OperationNode trueArrayMembership = new OperationNode(OperationNode.operations.IN, new ConstantNode("apple"), Optional.of(new ConstantNode("fruits")));
+		InterpreterDataType trueCase = interpreter.GetIDT(trueArrayMembership, Optional.empty());
+		
+		OperationNode falesArrayMembership = new OperationNode(OperationNode.operations.IN, new ConstantNode("orange"), Optional.of(new ConstantNode("fruits")));
+		InterpreterDataType falseCase = interpreter.GetIDT(falesArrayMembership, Optional.empty());
+		
+		// "1" is true and "0" is false.
+		Assert.assertEquals(trueCase.getType(), "1");
+		Assert.assertEquals(falseCase.getType(), "0");
+	}
+	
+	
+	// Everything past this point is for Interpreter 1
 	@Test
 	public void printfTest()
 	{

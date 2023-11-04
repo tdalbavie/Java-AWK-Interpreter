@@ -1084,6 +1084,7 @@ public class Parser
 							}
 						}
 					}
+					
 					else
 						throw new IllegalArgumentException("No expression found while assigning");
 				}while(true);
