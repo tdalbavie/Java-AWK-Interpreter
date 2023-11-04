@@ -25,6 +25,9 @@ public class UnitTest
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
+	    
 	    BuiltInFunctionDefinitionNode printf = (BuiltInFunctionDefinitionNode) interpreter.functions.get("printf");
 	    // Testing only for printf and print since no other types are variadic.
 	    Assert.assertEquals(printf.isVariadic(), true);
@@ -60,6 +63,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode print = (BuiltInFunctionDefinitionNode) interpreter.functions.get("print");
 	    
@@ -104,6 +110,9 @@ public class UnitTest
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
+	    
 	    BuiltInFunctionDefinitionNode toupper = (BuiltInFunctionDefinitionNode) interpreter.functions.get("toupper");
 	    Assert.assertEquals(toupper.execute(interpreter.globalVariables.get("$0")), "THIS IS A TEST FILE WITH SOME TEXT.");
 	}
@@ -122,6 +131,9 @@ public class UnitTest
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
+	    
 	    BuiltInFunctionDefinitionNode tolower = (BuiltInFunctionDefinitionNode) interpreter.functions.get("tolower");
 	    Assert.assertEquals(tolower.execute(interpreter.globalVariables.get("$0")), "this is a test file with some text.");
 	}
@@ -139,6 +151,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode substr = (BuiltInFunctionDefinitionNode) interpreter.functions.get("substr");
 	    
@@ -167,6 +182,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode sub = (BuiltInFunctionDefinitionNode) interpreter.functions.get("sub");
 	    
@@ -197,6 +215,9 @@ public class UnitTest
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
+	    
 	    BuiltInFunctionDefinitionNode split = (BuiltInFunctionDefinitionNode) interpreter.functions.get("split");
 	    
 	    // Setup the parameters.
@@ -221,6 +242,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    // This will skip to the second line so it can test when a number is encountered.
 	    interpreter.lm.SplitAndAssign();
@@ -249,6 +273,9 @@ public class UnitTest
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
+	    
 	    BuiltInFunctionDefinitionNode length = (BuiltInFunctionDefinitionNode) interpreter.functions.get("length");
 	    
 	    InterpreterDataType parameter = interpreter.globalVariables.get("$0");
@@ -269,6 +296,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode index = (BuiltInFunctionDefinitionNode) interpreter.functions.get("index");
 	    
@@ -294,6 +324,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode gsub = (BuiltInFunctionDefinitionNode) interpreter.functions.get("gsub");
 	    
@@ -336,6 +369,9 @@ public class UnitTest
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
 	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
+	    
 	    BuiltInFunctionDefinitionNode next = (BuiltInFunctionDefinitionNode) interpreter.functions.get("next");
 	    
 	    // Create an empty IDT since next does not use any parameters.
@@ -360,6 +396,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode getline = (BuiltInFunctionDefinitionNode) interpreter.functions.get("getline");
 	    
@@ -387,6 +426,9 @@ public class UnitTest
 		Path myPath = Paths.get(fileName);
 	    
 	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // This will initialize the first line.
+	    interpreter.lm.SplitAndAssign();
 	    
 	    Assert.assertEquals(interpreter.globalVariables.get("$0").getType(), "This Is A Test File With Some Text.");
 	    Assert.assertEquals(interpreter.globalVariables.get("$1").getType(), "This");

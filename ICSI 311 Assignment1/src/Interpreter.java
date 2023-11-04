@@ -106,10 +106,6 @@ public class Interpreter
 		globalVariables.put("NR", new InterpreterDataType("0"));
 		globalVariables.put("FNR", new InterpreterDataType("0"));
 		
-		// This will initialize the first line into the globalVariables.
-		// This will allow functions like gsub to be used without getting next line.
-		lm.SplitAndAssign();
-		
 		// Iterates through each entry in ProgramNode's FunctionDefinitionNode LinkedList.
 		for(FunctionDefinitionNode function : program.getFunctionDefinitionNode())
 		{
@@ -502,10 +498,81 @@ public class Interpreter
 				VariableReferenceNode target = (VariableReferenceNode) an.getTarget();
 				InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
 				
-				// Puts the new assignment into the globalVariables HashMap.
-				globalVariables.put(target.getName(), result);
+				// If an array index is presented.
+				if (target.getIndex().isPresent())
+				{
+					// Evaluates the index.
+					InterpreterDataType index = GetIDT(target.getIndex().get(), localVariables);
+					String indexName = index.getType();
+					
+					// Checks if this array already exists in global variables.
+					if (globalVariables.containsKey(target.getName()))
+					{
+						InterpreterDataType existingIndex = globalVariables.get(target.getName());
+						
+						if (existingIndex instanceof InterpreterArrayDataType)
+						{
+							InterpreterArrayDataType indices = (InterpreterArrayDataType) existingIndex;
+							indices.getArrayType().put(indexName, result);
+							
+							return result;
+						}
+						
+						else
+							throw new IllegalArgumentException("Cannot assign to an index of a non-array variable.");
+						
+					}
+					
+					else if (localVariables.isPresent())
+					{
+						// Checks if this array already exists in local variables.
+						if (localVariables.get().containsKey(target.getName()))
+						{
+							InterpreterDataType existingIndex = localVariables.get().get(target.getName());
+							
+							if (existingIndex instanceof InterpreterArrayDataType)
+							{
+								InterpreterArrayDataType indices = (InterpreterArrayDataType) existingIndex;
+								indices.getArrayType().put(indexName, result);
+								
+								return result;
+							}
+							
+							else
+								throw new IllegalArgumentException("Cannot assign to an index of a non-array variable.");
+						}
+						// Makes a new array in localVariables.
+						else
+						{
+							// Sets up the new array.
+							InterpreterArrayDataType indices = new InterpreterArrayDataType();
+							// Inputs the result into the provided index name.
+							indices.getArrayType().put(indexName, result);
+							// Creates a new array and puts it in localVariables.
+							localVariables.get().put(target.getName(), indices);
+						}
+					}
+					
+					// Makes a new array in globalVariables.
+					else
+					{
+						// Sets up the new array.
+						InterpreterArrayDataType indices = new InterpreterArrayDataType();
+						// Inputs the result into the provided index name.
+						indices.getArrayType().put(indexName, result);
+						// Creates a new array and puts it in globalVariables.
+						globalVariables.put(target.getName(), indices);
+					}
+				}
 				
-				return result;
+				// Assumes that this is not an array.
+				else
+				{
+					// Puts the new assignment into the globalVariables HashMap.
+					globalVariables.put(target.getName(), result);
+					
+					return result;
+				}
 			}
 			
 			// Checks for OperationNode and then checks for a field reference operation.
@@ -518,7 +585,7 @@ public class Interpreter
 					// Gets the expression result in the left node of the field reference OperationNode.
 					InterpreterDataType targetExpression = GetIDT(target.getLeftNode(), localVariables);
 					
-					String targetName = "$" + targetExpression.getType();
+					String targetName = targetExpression.getType();
 					
 					// Puts the new assignment into the globalVariables HashMap.
 					globalVariables.put(targetName, result);
@@ -560,15 +627,59 @@ public class Interpreter
 		{
 			TernaryNode ternary = (TernaryNode) node;
 			InterpreterDataType bool = GetIDT(ternary.getExpression(), localVariables);
+			
+			// Checks for false case then evaluates and returns it.
+			if (bool.getType().isEmpty() || bool.getType().equals("0"))
+			{
+				InterpreterDataType falseCase = GetIDT(ternary.getFalseCase(), localVariables);
+				return falseCase;
+			}
+			
+			// Evaluates the true case and returns.
+			else
+			{
+				InterpreterDataType trueCase = GetIDT(ternary.getTrueCase(), localVariables);
+				return trueCase;
+			}
 		}
 		
 		if (node instanceof VariableReferenceNode)
 		{
 			VariableReferenceNode vrn = (VariableReferenceNode) node;
-			
+			// Indices
 			if(vrn.getIndex().isPresent())
 			{
+				String variableName = vrn.getName();
+				// Resolves the index from the VariableReferenceNode array variable.
+				InterpreterDataType index = GetIDT(vrn.getIndex().get(), localVariables);
 				
+				if (globalVariables.containsKey(variableName))
+				{
+					InterpreterDataType indices = globalVariables.get(variableName);
+					// Checks if the value attached to the variable is an IADT to indicate an array.
+					if (indices instanceof InterpreterArrayDataType)
+					{
+						// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
+						return ((InterpreterArrayDataType) indices).getArrayType().get(index.getType());
+					}
+					// Throws an exception when the value is found but not an array.
+					else
+						throw new IllegalArgumentException("Variable being referenced (" + vrn.getName() + ") is not an array.");
+				}
+				
+				if (localVariables.get().containsKey(variableName))
+				{
+					InterpreterDataType indices = localVariables.get().get(variableName);
+					// Checks if the value attached to the variable is an IADT to indicate an array.
+					if (indices instanceof InterpreterArrayDataType)
+					{
+						// Returns the value at the position indicated in the VariableReferenceNode index from that position in the IADT.
+						return ((InterpreterArrayDataType) indices).getArrayType().get(index.getType());
+					}
+					// Throws an exception when the value is found but not an array.
+					else
+						throw new IllegalArgumentException("Variable being referenced (" + vrn.getName() + ") is not an array.");
+				}
 			}
 			
 			// If this is not an array reference.
@@ -580,16 +691,603 @@ public class Interpreter
 					return globalVariables.get(variableName);
 				}
 				
-				if (localVariables.get().containsKey(variableName))
+				else if (localVariables.isPresent())
 				{
-					return localVariables.get().get(variableName);
+					if (localVariables.get().containsKey(variableName))
+					{
+						return localVariables.get().get(variableName);
+					}
+					
+					// If no instance of this variable is found it will declare a new one with the value 0.
+					else
+					{
+						localVariables.get().put(variableName, new InterpreterDataType("0"));
+						return localVariables.get().get(variableName);
+					}
+				}
+				
+				// If no instance of this variable is found it will declare a new one with the value 0.
+				else
+				{
+					globalVariables.put(variableName, new InterpreterDataType("0"));
+					return globalVariables.get(variableName);
 				}
 			}
 		}
 		
 		if (node instanceof OperationNode)
 		{
-			
+			 OperationNode operation = (OperationNode) node;
+			 InterpreterDataType left = GetIDT(operation.getLeftNode(), localVariables);
+			 
+			 // Will continue down this path if there is a right node.
+			 if(operation.getRightNode().isPresent())
+			 {
+				 // This will deal with match.
+				 if (operation.getRightNode().get() instanceof PatternNode)
+				 {
+					 String pattern = ((PatternNode) operation.getRightNode().get()).getPattern();
+					 
+					 if (operation.getOperation() == OperationNode.operations.MATCH)
+					 {
+						 String match = left.getType();
+						 
+						 Pattern regex = Pattern.compile(pattern);
+						 Matcher matcher = regex.matcher(match);
+						 
+						 if(matcher.matches())
+						 {
+							 
+						 }
+						 
+						 else
+						 {
+							 
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.NOTMATCH)
+					 {
+						 
+					 }
+				 }
+				 
+				 // This will deal with operations with a left and right node.
+				 else
+				 {
+					 InterpreterDataType right = GetIDT(operation.getRightNode().get(), localVariables);
+					 
+					 if (operation.getOperation() == OperationNode.operations.EXPONENT)
+					 {
+						 // Converts left and right values to a float.
+						 float leftFloat = Float.parseFloat(left.getType());
+						 float rightFloat = Float.parseFloat(right.getType());
+						 
+						 // Use Math.pow to get the exponential expression.
+						 float result = (float) Math.pow(leftFloat, rightFloat);
+						 
+						 // Returns the result in an IDT.
+						 return new InterpreterDataType(Float.toString(result));
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.ADD)
+					 {
+						 // Converts left and right values to a float.
+						 float leftFloat = Float.parseFloat(left.getType());
+						 float rightFloat = Float.parseFloat(right.getType());
+						 
+						 float result = leftFloat + rightFloat;
+						 
+						 // Returns the result in an IDT.
+						 return new InterpreterDataType(Float.toString(result));
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.SUBTRACT)
+					 {
+						 // Converts left and right values to a float.
+						 float leftFloat = Float.parseFloat(left.getType());
+						 float rightFloat = Float.parseFloat(right.getType());
+						 
+						 float result = leftFloat - rightFloat;
+						 
+						 // Returns the result in an IDT.
+						 return new InterpreterDataType(Float.toString(result));
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.MULTIPLY)
+					 {
+						 // Converts left and right values to a float.
+						 float leftFloat = Float.parseFloat(left.getType());
+						 float rightFloat = Float.parseFloat(right.getType());
+						 
+						 float result = leftFloat * rightFloat;
+						 
+						 // Returns the result in an IDT.
+						 return new InterpreterDataType(Float.toString(result));
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.DIVIDE)
+					 {
+						 // Converts left and right values to a float.
+						 float leftFloat = Float.parseFloat(left.getType());
+						 float rightFloat = Float.parseFloat(right.getType());
+						 
+						 float result = leftFloat / rightFloat;
+						 
+						 // Returns the result in an IDT.
+						 return new InterpreterDataType(Float.toString(result));
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.MODULO)
+					 {
+						 // Converts left and right values to a float.
+						 float leftFloat = Float.parseFloat(left.getType());
+						 float rightFloat = Float.parseFloat(right.getType());
+						 
+						 float result = leftFloat % rightFloat;
+						 
+						 // Returns the result in an IDT.
+						 return new InterpreterDataType(Float.toString(result));
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.EQ)
+					 {
+						 // Tries to convert left and right to floats.
+						 try
+						 {
+							 // Converts left and right values to a float.
+							 float leftFloat = Float.parseFloat(left.getType());
+							 float rightFloat = Float.parseFloat(right.getType());
+							 
+							// Checks if the floats are equal and returns an IDT with true or false.
+							 if (leftFloat == rightFloat)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+						 
+						 // If conversions fail it will treat it as a string compare.
+						 catch (NumberFormatException e)
+						 {
+							 // Converts left and right values to a string.
+							 String leftString = left.getType();
+							 String rightString = right.getType();
+							 
+							 // Checks if the strings are equal and returns an IDT with true or false.
+							 if (leftString.equals(rightString))
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.NE)
+					 {
+						 // Tries to convert left and right to floats.
+						 try
+						 {
+							 // Converts left and right values to a float.
+							 float leftFloat = Float.parseFloat(left.getType());
+							 float rightFloat = Float.parseFloat(right.getType());
+							 
+							// Checks if the floats are not equal and returns an IDT with true or false.
+							 if (leftFloat != rightFloat)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+						 
+						 // If conversions fail it will treat it as a string compare.
+						 catch (NumberFormatException e)
+						 {
+							 // Converts left and right values to a string.
+							 String leftString = left.getType();
+							 String rightString = right.getType();
+							 
+							 // Checks if the strings are not equal and returns an IDT with true or false.
+							 if (!leftString.equals(rightString))
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.LT)
+					 {
+						 // Tries to convert left and right to floats.
+						 try
+						 {
+							 // Converts left and right values to a float.
+							 float leftFloat = Float.parseFloat(left.getType());
+							 float rightFloat = Float.parseFloat(right.getType());
+							 
+							// Checks if left is less than right and returns an IDT with true or false.
+							 if (leftFloat < rightFloat)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+						 
+						 // If conversions fail it will treat it as a string compare.
+						 catch (NumberFormatException e)
+						 {
+							 // Converts left and right values to a string.
+							 String leftString = left.getType();
+							 String rightString = right.getType();
+							 
+							 int stringComparison = leftString.compareTo(rightString);
+							 
+							 // Checks if left is less than right and returns an IDT with true or false.
+							 if (stringComparison < 0)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.LE)
+					 {
+						 // Tries to convert left and right to floats.
+						 try
+						 {
+							 // Converts left and right values to a float.
+							 float leftFloat = Float.parseFloat(left.getType());
+							 float rightFloat = Float.parseFloat(right.getType());
+							 
+							// Checks if the floats are equal and returns an IDT with true or false.
+							 if (leftFloat <= rightFloat)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+						 
+						 // If conversions fail it will treat it as a string compare.
+						 catch (NumberFormatException e)
+						 {
+							 // Converts left and right values to a string.
+							 String leftString = left.getType();
+							 String rightString = right.getType();
+							 
+							 int stringComparison = leftString.compareTo(rightString);
+							 
+							 // Checks if left is less than or equal to right and returns an IDT with true or false.
+							 if (stringComparison < 0)
+								 return new InterpreterDataType("1");
+							 
+							 // Returns false if leftString is lexicographically smaller than rightString.
+							 else if (stringComparison > 0)
+								 return new InterpreterDataType("0");
+							 
+							 // Returns true as by this point they are implied to be equal.
+							 else
+								 return new InterpreterDataType("1");
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.GT)
+					 {
+						 // Tries to convert left and right to floats.
+						 try
+						 {
+							 // Converts left and right values to a float.
+							 float leftFloat = Float.parseFloat(left.getType());
+							 float rightFloat = Float.parseFloat(right.getType());
+							 
+							// Checks if left is greater than right and returns an IDT with true or false.
+							 if (leftFloat > rightFloat)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+						 
+						 // If conversions fail it will treat it as a string compare.
+						 catch (NumberFormatException e)
+						 {
+							 // Converts left and right values to a string.
+							 String leftString = left.getType();
+							 String rightString = right.getType();
+							 
+							 int stringComparison = leftString.compareTo(rightString);
+							 
+							 // Checks if left is greater than right and returns an IDT with true or false.
+							 if (stringComparison > 0)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.GE)
+					 {
+						 // Tries to convert left and right to floats.
+						 try
+						 {
+							 // Converts left and right values to a float.
+							 float leftFloat = Float.parseFloat(left.getType());
+							 float rightFloat = Float.parseFloat(right.getType());
+							 
+							// Checks if the floats are equal and returns an IDT with true or false.
+							 if (leftFloat >= rightFloat)
+								 return new InterpreterDataType("1");
+							 
+							 else
+								 return new InterpreterDataType("0");
+						 }
+						 
+						 // If conversions fail it will treat it as a string compare.
+						 catch (NumberFormatException e)
+						 {
+							 // Converts left and right values to a string.
+							 String leftString = left.getType();
+							 String rightString = right.getType();
+							 
+							 int stringComparison = leftString.compareTo(rightString);
+							 
+							 // Checks if left is greater than or equal to right and returns an IDT with true or false.
+							 if (stringComparison > 0)
+								 return new InterpreterDataType("1");
+							 
+							 // Returns false if leftString is lexicographically larger than rightString.
+							 else if (stringComparison < 0)
+								 return new InterpreterDataType("0");
+							 
+							 // Returns true as by this point they are implied to be equal.
+							 else
+								 return new InterpreterDataType("1");
+						 }
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.AND)
+					 {
+						 // Converts left and right values to a string.
+						 String leftString = left.getType();
+						 String rightString = right.getType();
+						 
+						 // Checks if either left or right string are false (empty string or "0").
+						 // Returns false since both values have to be true.
+						 if (leftString.isEmpty() || leftString.equals("0") || rightString.isEmpty() || rightString.equals("0"))
+							 return new InterpreterDataType("0");
+						 
+						// Returns true since both values are considered true (not empty string or "0")
+						 else
+							 return new InterpreterDataType("1");
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.OR)
+					 {
+						 // Converts left and right values to a string.
+						 String leftString = left.getType();
+						 String rightString = right.getType();
+						 
+						 // Checks if either left and right string are false (empty string or "0").
+						 // Returns false since neither value is true.
+						 if (leftString.isEmpty() || leftString.equals("0") && rightString.isEmpty() || rightString.equals("0"))
+							 return new InterpreterDataType("0");
+						 
+						// Returns true since at least one of the values are considered true (not empty string or "0").
+						 else
+							 return new InterpreterDataType("1");
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.IN)
+					 {
+						 if (globalVariables.containsKey(right.getType()))
+						 {
+							 if (globalVariables.get(right.getType()) instanceof InterpreterArrayDataType)
+							 {
+								 // Gets all the values of the global array.
+								 InterpreterArrayDataType rightArray = (InterpreterArrayDataType) globalVariables.get(right.getType());
+								 String leftString = left.getType();
+								 
+								 // Checks to see if the index exists.
+								 if (rightArray.getArrayType().containsKey(leftString))
+									 return new InterpreterDataType("1");
+								 
+								 // If no matches are found, returns false.
+								 else
+									 return new InterpreterDataType("0");
+							 }
+							 
+							 else
+								 throw new IllegalArgumentException("Variable referenced on right side of in is not an array.");
+						 }
+						 
+						 else if (localVariables.isPresent())
+						 {
+							 if (localVariables.get().containsKey(right.getType()))
+							 {
+								// Gets all the values of the local array.
+								 InterpreterArrayDataType rightArray = (InterpreterArrayDataType) localVariables.get().get(right.getType());
+								 String leftString = left.getType();
+								 
+								 // Checks to see if the index exists.
+								 if (rightArray.getArrayType().containsKey(leftString))
+									 return new InterpreterDataType("1");
+								 
+								 // If no matches are found, returns false.
+								 else
+									 return new InterpreterDataType("0");
+							 }
+							 
+							 else
+								 throw new IllegalArgumentException("Right side of in must be a variable reference to an array.");
+						 }
+						 
+						 else
+							 throw new IllegalArgumentException("Right side of in must be a variable reference to an array.");
+					 }
+					 
+					 if (operation.getOperation() == OperationNode.operations.CONCATENATION)
+					 {
+						 // Converts left and right values to a string.
+						 String leftString = left.getType();
+						 String rightString = right.getType();
+						 
+						 // Adds the two strings together and returns is in an IDT.
+						 return new InterpreterDataType(leftString + rightString);
+					 }
+				 }
+			 
+			 }
+			 
+			 // Goes here if there is only a left node.
+			 else
+			 {
+				 if (operation.getOperation() == OperationNode.operations.PREINC)
+				 {
+					 // Returns the incremented value.
+					 try
+					 {
+						float floatValue = Float.parseFloat(left.getType());
+						floatValue++;
+						// Sets the new value of the variable.
+						left.setType(Float.toString(floatValue));
+						// Returns the new value.
+						return new InterpreterDataType(Float.toString(floatValue));
+					 }
+					 
+					 // Throws an exception when trying to increment anything other than a string.
+					 catch (NumberFormatException e)
+					 {
+						 throw new IllegalArgumentException("Can only increment number values.");
+					 }
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.POSTINC)
+				 {
+					 // Returns the incremented value.
+					 try
+					 {
+						float originalFloatValue = Float.parseFloat(left.getType());
+						float newFloatValue = originalFloatValue + 1;
+						// Sets the new value of the variable.
+						left.setType(Float.toString(newFloatValue));
+						// Returns the original value since increment happens after the operation.
+						return new InterpreterDataType(Float.toString(originalFloatValue));
+					 }
+					 
+					 // Throws an exception when trying to increment anything other than a string.
+					 catch (NumberFormatException e)
+					 {
+						 throw new IllegalArgumentException("Can only increment number values.");
+					 }
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.PREDEC)
+				 {
+					 // Returns the incremented value.
+					 try
+					 {
+						float floatValue = Float.parseFloat(left.getType());
+						floatValue--;
+						// Sets the new value of the variable.
+						left.setType(Float.toString(floatValue));
+						// Returns the new value.
+						return new InterpreterDataType(Float.toString(floatValue));
+					 }
+					 
+					 // Throws an exception when trying to increment anything other than a string.
+					 catch (NumberFormatException e)
+					 {
+						 throw new IllegalArgumentException("Can only increment number values.");
+					 }
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.POSTDEC)
+				 {
+					 // Returns the incremented value.
+					 try
+					 {
+						float originalFloatValue = Float.parseFloat(left.getType());
+						float newFloatValue = originalFloatValue - 1;
+						// Sets the new value of the variable.
+						left.setType(Float.toString(newFloatValue));
+						// Returns the original value since increment happens after the operation.
+						return new InterpreterDataType(Float.toString(originalFloatValue));
+					 }
+					 
+					 // Throws an exception when trying to increment anything other than a string.
+					 catch (NumberFormatException e)
+					 {
+						 throw new IllegalArgumentException("Can only increment number values.");
+					 }
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.DOLLAR)
+				 {
+					 try
+					 {
+						 float leftFloat = Float.parseFloat(left.toString());
+						 String variableReferenceName = "$" + leftFloat;
+						 
+						 // If the field reference already exists it will get the value and return it.
+						 if (globalVariables.containsKey(variableReferenceName))
+						 {
+							 InterpreterDataType value = globalVariables.get(variableReferenceName);
+							 return value;
+							 
+						 }
+						 
+						 // If the field reference does not exist it will make a new one and return the empty value.
+						 else
+						 {
+							 globalVariables.put(variableReferenceName, new InterpreterDataType(""));
+							 InterpreterDataType value = globalVariables.get(variableReferenceName);
+							 return value;
+						 }
+					 }
+					 catch (NumberFormatException e)
+					 {
+						 throw new IllegalArgumentException("Field reference expression must be numerical.");
+					 }
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.NOT)
+				 {
+					 // Converts left value to a string.
+					 String leftString = left.getType();
+					 
+					 // Checks if left is false (empty string or "0").
+					 // Returns true since not does the opposite.
+					 if (leftString.isEmpty() && leftString.equals("0"))
+						 return new InterpreterDataType("1");
+					 
+					// Returns false since if it evaluates to true it does the opposite.
+					 else
+						 return new InterpreterDataType("0");
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.UNARYPOS)
+				 {
+					 return left;
+				 }
+				 
+				 if (operation.getOperation() == OperationNode.operations.UNARYNEG)
+				 {
+					 // Checks if value is convertible to float.
+					 try
+					 {
+						 String leftString = left.getType();
+						 float leftFloat = Float.parseFloat(leftString);
+						 leftFloat = leftFloat * -1;
+						 return new InterpreterDataType(Float.toString(leftFloat));
+					 }
+					 // Assumes a non-integer string and simply sets the value to 0.
+					 catch (NumberFormatException e)
+					 {
+						 return new InterpreterDataType("0");
+					 }
+				 }
+			 }
 		}
 		
 		return null;
