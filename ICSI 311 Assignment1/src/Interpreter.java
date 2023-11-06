@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -483,6 +484,194 @@ public class Interpreter
 			return toupperParameters.getType().toUpperCase();
 		}));
 		
+	}
+	
+	public ReturnType ProcessStatement(StatementNode stmt, Optional<HashMap<String, InterpreterDataType>> localVariables)
+	{
+		// This is similar to GetIDT's AssignmentNode but returns a ReturnType instance instead.
+		if (stmt instanceof AssignmentNode)
+		{
+			AssignmentNode assignmentStmt = (AssignmentNode) stmt;
+			
+			if (assignmentStmt.getTarget() instanceof VariableReferenceNode)
+			{
+				// Evaluates the target value and get's its IDT then changes the value to the evaluated result.
+				InterpreterDataType target = GetIDT(assignmentStmt.getTarget(), localVariables);
+				InterpreterDataType result = GetIDT(assignmentStmt.getExpression(), localVariables);
+				
+				// Sets the value of the target to the result.
+				target.setType(result.getType());
+
+				// Returns a new instance of ReturnType with the result of the assignment.
+				return new ReturnType(ReturnType.ReturnTypes.NORMAL, result.getType());
+			}
+			
+			// Checks for OperationNode and then checks for a field reference operation.
+			else if (assignmentStmt.getTarget() instanceof OperationNode)
+			{
+				// Makes sure the OperationNode contains a Dollar operation.
+				OperationNode target = (OperationNode) assignmentStmt.getTarget();
+				if (target.getOperation() == OperationNode.operations.DOLLAR)
+				{
+					// Gets the IDT attached to the field reference.
+					InterpreterDataType targetValue = GetIDT(target, localVariables);
+					InterpreterDataType result = GetIDT(assignmentStmt.getExpression(), localVariables);
+					
+					// Sets the value of the target to the result.
+					targetValue.setType(result.getType());
+					
+					// Returns a new instance of ReturnType with the result of the assignment.
+					return new ReturnType(ReturnType.ReturnTypes.NORMAL, result.getType());
+				}
+				
+				// Throws an exception when the OperationNode is not a field reference.
+				else
+					throw new IllegalArgumentException("Assignment must start with a variable or field reference.");
+			}
+			// Throws an exceptions when the target is something other than a VariableReferenceNode or OperationNode.
+			else
+				throw new IllegalArgumentException("Assignment must start with a variable or field reference.");
+		}
+		
+		if (stmt instanceof BreakNode)
+		{
+			return new ReturnType(ReturnType.ReturnTypes.BREAK);
+		}
+		
+		if (stmt instanceof ContinueNode)
+		{
+			return new ReturnType(ReturnType.ReturnTypes.CONTINUE);
+		}
+		
+		if (stmt instanceof DeleteNode)
+		{
+			DeleteNode deleteStmt = (DeleteNode) stmt;
+			
+			// Checks if array exists in localVariables otherwise checks globalVariables.
+			if (localVariables.isPresent())
+			{
+				if (localVariables.get().containsKey(deleteStmt.getArrayName()))
+				{
+					InterpreterDataType value = localVariables.get().get(deleteStmt.getArrayName());
+					
+					// If this is not an IADT it will just ignore it and continue to the next process.
+					if (value instanceof InterpreterArrayDataType)
+					{
+						InterpreterArrayDataType arrayValue = (InterpreterArrayDataType) value;
+						
+						// If the delete statement contains any indices.
+						if (deleteStmt.getIndex().isPresent())
+						{
+							LinkedList<Node> indices = deleteStmt.getIndex().get();
+							
+							for(Node node : indices)
+							{
+								// Evaluates the index expression.
+								InterpreterDataType index = GetIDT(node, localVariables);
+								
+								// Deletes each index it finds that need's to be deleted.
+								if (arrayValue.getArrayType().containsKey(index.getType()))
+								{
+									arrayValue.getArrayType().remove(index.getType());
+								}
+							}
+							
+							// Returns normal return type but does not return a value.
+							return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+						}
+						
+						// Clears all indices in the HashMap using .clear()
+						else
+						{
+							arrayValue.getArrayType().clear();
+							// Returns normal return type but does not return a value.
+							return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+						}
+					}
+				}
+			}
+			
+			// This will check globalVariables if no localVariables were given.
+			if (globalVariables.containsKey(deleteStmt.getArrayName()))
+			{
+				InterpreterDataType value = globalVariables.get(deleteStmt.getArrayName());
+				
+				// If this is not an IADT it will just ignore it and continue to the next process.
+				if (value instanceof InterpreterArrayDataType)
+				{
+					InterpreterArrayDataType arrayValue = (InterpreterArrayDataType) value;
+					
+					// If the delete statement contains any indices.
+					if (deleteStmt.getIndex().isPresent())
+					{
+						LinkedList<Node> indices = deleteStmt.getIndex().get();
+						
+						for(Node node : indices)
+						{
+							// Evaluates the index expression.
+							InterpreterDataType index = GetIDT(node, localVariables);
+							
+							// Deletes each index it finds that need's to be deleted.
+							if (arrayValue.getArrayType().containsKey(index.getType()))
+							{
+								arrayValue.getArrayType().remove(index.getType());
+							}
+						}
+						
+						// Returns normal return type but does not return a value.
+						return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+					}
+					
+					// Clears all indices in the HashMap using .clear()
+					else
+					{
+						arrayValue.getArrayType().clear();
+						// Returns normal return type but does not return a value.
+						return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+					}
+				}
+			}
+		}
+		
+		if (stmt instanceof DoWhileNode)
+		{
+			
+		}
+		
+		if (stmt instanceof ForNode)
+		{
+			
+		}
+		
+		if (stmt instanceof ForEachNode)
+		{
+			
+		}
+		
+		// This is similar to GetIDT's FunctionCallNode but returns a ReturnType instance instead.
+		if (stmt instanceof FunctionCallNode)
+		{
+			FunctionCallNode fcnStmt = (FunctionCallNode) stmt;
+			String FunctionCallResult = RunFunctionCall(fcnStmt, localVariables.get());
+			return new ReturnType(ReturnType.ReturnTypes.NORMAL, FunctionCallResult);
+		}
+		
+		if (stmt instanceof IfNode)
+		{
+			
+		}
+		
+		if (stmt instanceof ReturnNode)
+		{
+			
+		}
+		
+		if (stmt instanceof WhileNode)
+		{
+			
+		}
+		
+		return null;
 	}
 	
 	public InterpreterDataType GetIDT(Node node, Optional<HashMap<String, InterpreterDataType>> localVariables)

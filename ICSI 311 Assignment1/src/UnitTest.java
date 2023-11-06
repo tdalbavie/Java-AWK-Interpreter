@@ -1058,8 +1058,8 @@ public class UnitTest
 	    DeleteNode delNode = (DeleteNode) block.getStatements().get(0);
 	    
 	    Assert.assertEquals(delNode.getArrayName(), "myArray");
-	    VariableReferenceNode vrNode1 = (VariableReferenceNode) delNode.getIndex().get(0);
-	    VariableReferenceNode vrNode2 = (VariableReferenceNode) delNode.getIndex().get(1);
+	    VariableReferenceNode vrNode1 = (VariableReferenceNode) delNode.getIndex().get().get(0);
+	    VariableReferenceNode vrNode2 = (VariableReferenceNode) delNode.getIndex().get().get(1);
 	    
 	    Assert.assertEquals(vrNode1.getName(), "a");
 	    Assert.assertEquals(vrNode2.getName(), "b");

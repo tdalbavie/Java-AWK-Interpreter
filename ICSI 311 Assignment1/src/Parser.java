@@ -524,7 +524,7 @@ public class Parser
 					throw new IllegalArgumentException("No closing bracket found after getting indices to delete.");
 				
 				// Returns a DeleteNode that also contains indices to be deleted.
-				return Optional.of(new DeleteNode(arrayName, indices));
+				return Optional.of(new DeleteNode(arrayName, Optional.of(indices)));
 			}
 			// Returns a DeleteNode if no open bracket is found (deletes whole array).
 			else
