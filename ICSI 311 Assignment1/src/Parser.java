@@ -620,10 +620,16 @@ public class Parser
 			if(returnExpression.isEmpty())
 				throw new IllegalArgumentException("Return must have an expression to return.");
 			
-			return Optional.of(new ReturnNode(returnExpression.get()));
+			// Creates a new optional ReturnNode with the return expression (for example "return 1+2").
+			if (returnExpression.isPresent())
+				return Optional.of(new ReturnNode(returnExpression.get()));
+			
+			// If no expression was found, expression will be set to null, in the case of return without a parameter.
+			else
+				return Optional.of(new ReturnNode(null));
 		}
 		
-		// Deals with operation statements (Assignment, increment and decrement, and function calls)
+		// Deals with operation statements (Assignment, increment and decrement, and function calls).
 		else
 		{
 			Optional<Node> optionalNode = ParseOperation();

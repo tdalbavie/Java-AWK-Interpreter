@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -486,7 +488,8 @@ public class Interpreter
 		
 	}
 	
-	public ReturnType ProcessStatement(StatementNode stmt, Optional<HashMap<String, InterpreterDataType>> localVariables)
+	
+	public ReturnType ProcessStatement(Node stmt, Optional<HashMap<String, InterpreterDataType>> localVariables)
 	{
 		// This is similar to GetIDT's AssignmentNode but returns a ReturnType instance instead.
 		if (stmt instanceof AssignmentNode)
@@ -635,17 +638,168 @@ public class Interpreter
 		
 		if (stmt instanceof DoWhileNode)
 		{
+			DoWhileNode doWhileStmt = (DoWhileNode) stmt;
+			BlockNode statements = doWhileStmt.getStatements();
+			ReturnType rt;
 			
+			// Calls InterpreterListOfStatements until a break is returned.
+			do
+			{
+				rt = InterpretListOfStatements(statements.getStatements(), localVariables);
+				
+				// Breaks from the loop when a break is encountered.
+				if (rt.getTypeReturned() != ReturnType.ReturnTypes.BREAK)
+					break;
+				// Returns the ReturnType if a return is encountered.
+				else if (rt.getTypeReturned() != ReturnType.ReturnTypes.RETURN)
+					return rt;
+				
+			}while(!GetIDT(doWhileStmt.getCondition(), localVariables).getType().equals("0") || !GetIDT(doWhileStmt.getCondition(), localVariables).getType().isEmpty());
+			
+			// Returns normal and treats it as a successful execution.
+			return new ReturnType(ReturnType.ReturnTypes.NORMAL);
 		}
 		
 		if (stmt instanceof ForNode)
 		{
+			ForNode forStmt = (ForNode) stmt;
+			BlockNode statements = forStmt.getStatements();
+			ReturnType initialization = ProcessStatement(forStmt.getInitialization(), localVariables);
+			// Initializes the ReturnType for use in the loop.
+			ReturnType rt = new ReturnType(ReturnType.ReturnTypes.NORMAL);
 			
+			// Checks for a break or if the condition is false.
+			while(!GetIDT(forStmt.getCondition(), localVariables).getType().equals("0") || !GetIDT(forStmt.getCondition(), localVariables).getType().isEmpty())
+			{
+				rt = InterpretListOfStatements(statements.getStatements(), localVariables);
+				
+				// Evaluates the increment/decrement statement (We will not use the return since this is simply for an assign.
+				ProcessStatement(forStmt.getIncrement(), localVariables);
+				
+				// Breaks from the loop when a break is encountered.
+				if (rt.getTypeReturned() != ReturnType.ReturnTypes.BREAK)
+					break;
+				// Returns the ReturnType if a return is encountered.
+				else if (rt.getTypeReturned() != ReturnType.ReturnTypes.RETURN)
+					return rt;
+			}
+			
+			// Returns normal return type but does not return a value.
+			return new ReturnType(ReturnType.ReturnTypes.NORMAL);
 		}
 		
 		if (stmt instanceof ForEachNode)
 		{
+			ForEachNode forEachStmt = (ForEachNode) stmt;
+			BlockNode statements = forEachStmt.getStatements();
 			
+			if (forEachStmt.getArrayMembershipCondition() instanceof OperationNode)
+			{
+				OperationNode condition = (OperationNode) forEachStmt.getArrayMembershipCondition();
+				
+				// Ensures that the left contains a variable.
+				if (condition.getLeftNode() instanceof VariableReferenceNode)
+				{
+					// Makes sure a second condition is provided.
+					if (condition.getRightNode().isPresent())
+					{
+						// Makes sure the second condition is a variable.
+						if(condition.getRightNode().get() instanceof VariableReferenceNode)
+						{
+							// Gets both variables for use in an advanced for loop.
+							VariableReferenceNode leftVar = (VariableReferenceNode) condition.getLeftNode();
+							VariableReferenceNode rightVar = (VariableReferenceNode) condition.getRightNode().get();
+							
+							// Checks if the array is present in localVariables.
+							if (localVariables.isPresent())
+							{
+								if (localVariables.get().containsKey(rightVar.getName()))
+								{
+									InterpreterDataType arrayValue = localVariables.get().get(rightVar.getName());
+									// Makes sure that the variable provided is an array.
+									if (arrayValue instanceof InterpreterArrayDataType)
+									{
+										InterpreterArrayDataType indices = (InterpreterArrayDataType) arrayValue;
+										// Evaluates the left value and returns its IDT (This will override an existing variable or create a new one).
+										InterpreterDataType leftVarValue = GetIDT(leftVar, localVariables);
+										
+										// Throws an exception if an array is presented as the variable (AWK technically does something with this but I will throw and exception in this case).
+										if (leftVarValue instanceof InterpreterArrayDataType)
+											throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+										
+										// Loops through each entry in the array HashMap.
+										for (Map.Entry<String, InterpreterDataType> entry : indices.getArrayType().entrySet())
+										{
+											// Sets the variable to the key.
+											leftVarValue.setType(entry.getKey());
+											
+											InterpretListOfStatements(statements.getStatements(), localVariables);
+										}
+										
+										// Returns normal return type but does not return a value.
+										return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+									}
+									
+									// Throws an exception when the variable provided is not an array.
+									else
+										throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+								}
+							}
+							
+							// Checks if the array is present in globalVariables.
+							if (globalVariables.containsKey(rightVar.getName()))
+							{
+								InterpreterDataType arrayValue = globalVariables.get(rightVar.getName());
+								// Makes sure that the variable provided is an array.
+								if (arrayValue instanceof InterpreterArrayDataType)
+								{
+									InterpreterArrayDataType indices = (InterpreterArrayDataType) arrayValue;
+									// Evaluates the left value and returns its IDT (This will override an existing variable or create a new one).
+									InterpreterDataType leftVarValue = GetIDT(leftVar, localVariables);
+									
+									// Throws an exception if an array is presented as the variable (AWK technically does something with this but I will throw and exception in this case).
+									if (leftVarValue instanceof InterpreterArrayDataType)
+										throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+									
+									// Loops through each entry in the array HashMap.
+									for (Map.Entry<String, InterpreterDataType> entry : indices.getArrayType().entrySet())
+									{
+										// Sets the variable to the key.
+										leftVarValue.setType(entry.getKey());
+										
+										InterpretListOfStatements(statements.getStatements(), localVariables);
+									}
+									
+									// Returns normal return type but does not return a value.
+									return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+								}
+								
+								// Throws an exception when the variable provided is not an array.
+								else
+									throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+							}
+							
+							// When an undeclared array is given, it will just return and skip over this statement.
+							return new ReturnType(ReturnType.ReturnTypes.NORMAL);
+						}
+						
+						// Throws an exception when it encounters anything other than a VariableReferenceType. 
+						else
+							throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+					}
+					
+					// Throws an exception when it does not encounter anything on the right.
+					else
+						throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+				}
+				
+				// Throws an exception when it encounters anything other than a VariableReferenceType.
+				else
+					throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
+			}
+			// Throws an exception when it encounters anything other than an in operator in the condition.
+			else
+				throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
 		}
 		
 		// This is similar to GetIDT's FunctionCallNode but returns a ReturnType instance instead.
@@ -658,21 +812,81 @@ public class Interpreter
 		
 		if (stmt instanceof IfNode)
 		{
+			IfNode ifStmt = (IfNode) stmt;
+			BlockNode statements = ifStmt.getStatements();
+			// Using a temporary IfNode to walk through the linked list.
+			IfNode tempIfNode = ifStmt;
 			
+			// Loops until no more nodes are found.
+			while(tempIfNode != null)
+			{
+				// Breaks from the loop when the condition is met.
+				if (tempIfNode.getCondition().isEmpty() 
+					|| GetIDT(tempIfNode.getCondition().get(), localVariables).getType().equals("1") 
+					|| !GetIDT(tempIfNode.getCondition().get(), localVariables).getType().isEmpty())
+				{
+					break;
+				}
+				
+				tempIfNode = tempIfNode.getNextIf();
+			}
+			
+			// This will return the ReturnType from InterpretListOfStatements
+			if (tempIfNode != null)
+			{
+				return InterpretListOfStatements(statements.getStatements(), localVariables);
+			}
+			
+			// This will return no value if no condition was found by the end of the if chain.
+			else
+				return new ReturnType(ReturnType.ReturnTypes.NORMAL);
 		}
 		
 		if (stmt instanceof ReturnNode)
 		{
+			ReturnNode returnStmt = (ReturnNode) stmt;
 			
+			// Checks if there is a return expression.
+			if (returnStmt.getReturnExpression() != null)
+			{
+				InterpreterDataType value = GetIDT(returnStmt.getReturnExpression(), localVariables);
+				return new ReturnType(ReturnType.ReturnTypes.RETURN, value.getType());
+			}
+			
+			// Treats it as a return with no parameter.
+			else
+				return new ReturnType(ReturnType.ReturnTypes.RETURN);
 		}
 		
+		// Same as do while uses a while loop instead.
 		if (stmt instanceof WhileNode)
 		{
+			WhileNode whileStmt = (WhileNode) stmt;
+			BlockNode statements = whileStmt.getStatements();
+			// Initializes the ReturnType for use in the loop.
+			ReturnType rt = new ReturnType(ReturnType.ReturnTypes.NORMAL);
 			
+			// Calls InterpreterListOfStatements until a break is returned.
+			while(!GetIDT(whileStmt.getCondition(), localVariables).getType().equals("0") || !GetIDT(whileStmt.getCondition(), localVariables).getType().isEmpty())
+			{
+				rt = InterpretListOfStatements(statements.getStatements(), localVariables);
+				
+				// Breaks from the loop when a break is encountered.
+				if (rt.getTypeReturned() != ReturnType.ReturnTypes.BREAK)
+					break;
+				// Returns the ReturnType if a return is encountered.
+				else if (rt.getTypeReturned() != ReturnType.ReturnTypes.RETURN)
+					return rt;
+			}
+			
+			// Returns normal return type but does not return a value.
+			return new ReturnType(ReturnType.ReturnTypes.NORMAL);
 		}
 		
-		return null;
+		// Throws an exception if any other node is encountered and prints out which node it is.
+		throw new IllegalArgumentException("Error: Unexpected statement node type: " + stmt.getClass().getName());
 	}
+	
 	
 	public InterpreterDataType GetIDT(Node node, Optional<HashMap<String, InterpreterDataType>> localVariables)
 	{
@@ -1488,11 +1702,26 @@ public class Interpreter
 			 }
 		}
 		
-		return null;
+		// Throws an exception if any other node is encountered and prints out which node it is.
+		throw new IllegalArgumentException("Error: Unexpected GetIDT node type: " + node.getClass().getName());
+	}
+	
+	private ReturnType InterpretListOfStatements(LinkedList<StatementNode> statements, Optional<HashMap<String, InterpreterDataType>> locals)
+	{
+		for (StatementNode statement : statements)
+		{
+			ReturnType rt = ProcessStatement(statement, locals);
+			if (rt.getTypeReturned() != ReturnType.ReturnTypes.NORMAL)
+			{
+				return rt;
+			}
+		}
+		
+		return new ReturnType(ReturnType.ReturnTypes.NORMAL);
 	}
 	
 	// Returns an empty string for now, will be implemented later on.
-	public String RunFunctionCall(FunctionCallNode fcn, HashMap<String, InterpreterDataType> locals)
+	private String RunFunctionCall(FunctionCallNode fcn, HashMap<String, InterpreterDataType> locals)
 	{
 		return "";
 	}

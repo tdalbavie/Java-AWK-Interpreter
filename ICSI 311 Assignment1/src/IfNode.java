@@ -3,9 +3,9 @@ import java.util.Optional;
 public class IfNode extends StatementNode
 {
 	// Will be empty in the case of an else
-	Optional<Node> condition;
-	BlockNode statements;
-	IfNode next;
+	private Optional<Node> condition;
+	private BlockNode statements;
+	private IfNode next;
 	
 	// Only used for else statement.
 	public IfNode(BlockNode statements)
