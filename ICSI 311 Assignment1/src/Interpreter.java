@@ -16,9 +16,9 @@ public class Interpreter
 {
 	class LineManager
 	{
-		List<String> input;
+		private List<String> input;
 		
-		public LineManager(List<String> input)
+		private LineManager(List<String> input)
 		{
 			this.input = input;
 		}
@@ -77,12 +77,20 @@ public class Interpreter
 	
 	HashMap<String, InterpreterDataType> globalVariables;
 	HashMap<String, FunctionDefinitionNode> functions;
+	LinkedList<BlockNode> beginBlocks;
+	LinkedList<BlockNode> blocks;
+	LinkedList<BlockNode> endBlocks;
 	LineManager lm;
 	
 	public Interpreter(ProgramNode program, Optional<Path> filePath)
 	{
 		globalVariables = new HashMap<String, InterpreterDataType>();
 		functions = new HashMap<String, FunctionDefinitionNode>();
+		
+		// Gets the blocks from the program node and defines them as field members for use in InterpretProgram.
+		beginBlocks = program.getBeginBlocks();
+		blocks = program.getBlocks();
+		endBlocks = program.getEndBlocks();
 		
 		List<String> input = new ArrayList<String>();
 		// Checks for file path and populates the list with the file's text, if none is found, it will pass the empty ArrayList of strings in.
@@ -283,7 +291,13 @@ public class Interpreter
 		// Simply returns the length of the string.
 		functions.put("length", new BuiltInFunctionDefinitionNode(false, (lengthParameters) -> 
 		{
-			return Integer.toString(lengthParameters.getType().length());
+			if(lengthParameters instanceof InterpreterArrayDataType)
+			{
+				InterpreterDataType parameter = ((InterpreterArrayDataType) lengthParameters).getArrayType().get("0");
+				return Integer.toString(parameter.getType().length());
+			}
+			else
+				throw new IllegalArgumentException("Expected IADT in match statement.");
 		}));
 		
 		functions.put("match", new BuiltInFunctionDefinitionNode(false, (matchParameters) -> 
@@ -478,16 +492,80 @@ public class Interpreter
 		
 		functions.put("tolower", new BuiltInFunctionDefinitionNode(false, (tolowerParameters) -> 
 		{
-			return tolowerParameters.getType().toLowerCase();
+			if(tolowerParameters instanceof InterpreterArrayDataType)
+			{
+				InterpreterDataType parameter = ((InterpreterArrayDataType) tolowerParameters).getArrayType().get("0");
+				return tolowerParameters.getType().toLowerCase();
+			}
+			else
+				throw new IllegalArgumentException("Expected IADT in match statement.");
 		}));
 		
 		functions.put("toupper", new BuiltInFunctionDefinitionNode(false, (toupperParameters) -> 
 		{
-			return toupperParameters.getType().toUpperCase();
+			if(toupperParameters instanceof InterpreterArrayDataType)
+			{
+				InterpreterDataType parameter = ((InterpreterArrayDataType) toupperParameters).getArrayType().get("0");
+				return toupperParameters.getType().toUpperCase();
+			}
+			else
+				throw new IllegalArgumentException("Expected IADT in match statement.");
 		}));
 		
 	}
 	
+	public void InterpretProgram()
+	{
+		for(BlockNode beginBlock : beginBlocks)
+		{
+			InterpretBlock(beginBlock);
+		}
+		
+		// This will run call run all non begin or end blocks for each record of SplitAndAssign.
+		while(lm.SplitAndAssign() != false)
+		{
+			for(BlockNode block : blocks)
+			{
+				InterpretBlock(block);
+			}
+		}
+		
+		for(BlockNode endBlock : endBlocks)
+		{
+			InterpretBlock(endBlock);
+		}
+	}
+	
+	public void InterpretBlock(BlockNode block)
+	{
+		// Checks to see if there is a condition.
+		if (block.getCondition().isPresent())
+		{
+			Node condition = block.getCondition().get();
+			// Evaluates the condition of the block.
+			InterpreterDataType conditionResult = GetIDT(condition, Optional.empty());
+			
+			// Checks if the condition is true, will not execute if condition is false.
+			if (conditionResult.getType().equals("1") || !conditionResult.getType().isEmpty())
+			{
+				// Process all statements in the block.
+				for (Node statement : block.getStatements())
+				{
+					ProcessStatement(statement, Optional.empty());
+				}
+			}
+		}
+		
+		// This will run the block if no condition is given.
+		else
+		{
+			// Process all statements in the block.
+			for (Node statement : block.getStatements())
+			{
+				ProcessStatement(statement, Optional.empty());
+			}
+		}
+	}
 	
 	public ReturnType ProcessStatement(Node stmt, Optional<HashMap<String, InterpreterDataType>> localVariables)
 	{
@@ -506,7 +584,7 @@ public class Interpreter
 				target.setType(result.getType());
 
 				// Returns a new instance of ReturnType with the result of the assignment.
-				return new ReturnType(ReturnType.ReturnTypes.NORMAL, result.getType());
+				return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(result.getType()));
 			}
 			
 			// Checks for OperationNode and then checks for a field reference operation.
@@ -524,7 +602,7 @@ public class Interpreter
 					targetValue.setType(result.getType());
 					
 					// Returns a new instance of ReturnType with the result of the assignment.
-					return new ReturnType(ReturnType.ReturnTypes.NORMAL, result.getType());
+					return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(result.getType()));
 				}
 				
 				// Throws an exception when the OperationNode is not a field reference.
@@ -797,7 +875,7 @@ public class Interpreter
 				else
 					throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
 			}
-			// Throws an exception when it encounters anything other than an in operator in the condition.
+			// Throws an exception when it encounters anything other than an "in" operator in the condition.
 			else
 				throw new IllegalArgumentException("Error: Invalid For-Each loop notation: must be (var in array).");
 		}
@@ -807,7 +885,7 @@ public class Interpreter
 		{
 			FunctionCallNode fcnStmt = (FunctionCallNode) stmt;
 			String FunctionCallResult = RunFunctionCall(fcnStmt, localVariables.get());
-			return new ReturnType(ReturnType.ReturnTypes.NORMAL, FunctionCallResult);
+			return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(FunctionCallResult));
 		}
 		
 		if (stmt instanceof IfNode)
@@ -850,7 +928,7 @@ public class Interpreter
 			if (returnStmt.getReturnExpression() != null)
 			{
 				InterpreterDataType value = GetIDT(returnStmt.getReturnExpression(), localVariables);
-				return new ReturnType(ReturnType.ReturnTypes.RETURN, value.getType());
+				return new ReturnType(ReturnType.ReturnTypes.RETURN, Optional.of(value.getType()));
 			}
 			
 			// Treats it as a return with no parameter.
@@ -1703,7 +1781,7 @@ public class Interpreter
 		}
 		
 		// Throws an exception if any other node is encountered and prints out which node it is.
-		throw new IllegalArgumentException("Error: Unexpected GetIDT node type: " + node.getClass().getName());
+		throw new IllegalArgumentException("Error: Unexpected GetIDT node type: " + node.getClass().getName() + ".");
 	}
 	
 	private ReturnType InterpretListOfStatements(LinkedList<StatementNode> statements, Optional<HashMap<String, InterpreterDataType>> locals)
@@ -1723,6 +1801,83 @@ public class Interpreter
 	// Returns an empty string for now, will be implemented later on.
 	private String RunFunctionCall(FunctionCallNode fcn, HashMap<String, InterpreterDataType> locals)
 	{
-		return "";
+		String FunctionCallName = fcn.getName();
+		
+		// Checks if the function being called exists
+		if (functions.containsKey(FunctionCallName))
+		{
+			FunctionDefinitionNode fdn = functions.get(FunctionCallName);
+			
+			/*
+			 *  Because of the way I implemented the lambda functions I will pass in an IDT for single parameter built in functions and an IADT for multiple.
+			 *  I did it this way since writing the single parameter functions would be easier however it made this part more difficult.
+			 *  I did not know at the time how we would pass things in so I have to do it this way because of my design choice.
+			 */
+			if (fdn instanceof BuiltInFunctionDefinitionNode)
+			{
+				BuiltInFunctionDefinitionNode builtIn = (BuiltInFunctionDefinitionNode) fdn;
+				
+				// Creates a new IADT for the lambda functions.
+				InterpreterArrayDataType parameters = new InterpreterArrayDataType();
+				
+				// Processes each parameter in the function call and puts them in a HashMap.
+				int i = 0;
+				for (Node parameter : fcn.getParameters())
+				{
+					// This will create custom numbered keys that the lambda functions can process.
+					parameters.getArrayType().put(Integer.toString(i), GetIDT(fcn.getParameters().get(i++), Optional.empty()));
+				}
+				
+				// Returns the result of the BuiltIn function's execution.
+				return builtIn.execute(parameters);
+			}
+			
+			// This will process all user defined functions
+			else
+			{
+				// Makes sure the correct number of parameters are called in the function call (Cannot be done with BuiltIn functions since some are overloaded).
+				if (fdn.getParameterNames().size() != fcn.getParameters().size())
+					throw new IllegalArgumentException("Error: Mismatched parameters: The function " + FunctionCallName + " can only have " + fdn.getParameterNames().size() + " parameters.");
+				
+				HashMap<String, InterpreterDataType> parameters = new HashMap<String, InterpreterDataType>();
+				
+				// Processes each parameter in the function call and puts them in a HashMap.
+				int i = 0;
+				for (String parameterName : fdn.getParameterNames())
+				{
+					// This will use the user defined parameter names as the keys to the local variables.
+					parameters.put(parameterName, GetIDT(fcn.getParameters().get(i++), Optional.empty()));
+				}
+				
+				ReturnType rt = InterpretListOfStatements(fdn.getStatements(), Optional.of(parameters));
+				
+				// Throws if a break was found in a function.
+				if (rt.getTypeReturned() == ReturnType.ReturnTypes.BREAK)
+					throw new IllegalArgumentException("Error: Unexpected break in function: Illegal use of break in " + FunctionCallName + ".");
+				
+				// Throws if a continue was found in a function.
+				else if (rt.getTypeReturned() == ReturnType.ReturnTypes.CONTINUE)
+					throw new IllegalArgumentException("Error: Unexpected break in function: Illegal use of break in " + FunctionCallName + ".");
+				
+				// Returns the value of the return if a value to return is given.
+				else if (rt.getTypeReturned() == ReturnType.ReturnTypes.RETURN)
+				{
+					// Returns the value of the return.
+					if (rt.getReturnValue().isPresent())
+						return rt.getReturnValue().get();
+					// Returns an empty string if return has no value to return.
+					else
+						return "";
+				}
+				
+				// Returns an empty string if the function executed without interruption (typeReturned will be NORMAL).
+				else
+					return "";
+			}
+		}
+		
+		// Throws in the case of an undefined function.
+		else
+			throw new IllegalArgumentException("Error: Function not found: The function " + FunctionCallName + " has not been defined, unable to call function.");
 	}
 }

@@ -4,13 +4,13 @@ import java.util.Optional;
 public class FunctionCallNode extends StatementNode
 {
 	private String FunctionName;
-	private LinkedList<Node> ParameterNames;
+	private LinkedList<Node> Parameters;
 	
 	// Called when parameters are found.
-	public FunctionCallNode(String FunctionName, LinkedList<Node> ParameterNames)
+	public FunctionCallNode(String FunctionName, LinkedList<Node> Parameters)
 	{
 		this.FunctionName = FunctionName;
-		this.ParameterNames = new LinkedList<Node>(ParameterNames);
+		this.Parameters = new LinkedList<Node>(Parameters);
 	}
 	
 	public String getName()
@@ -18,17 +18,17 @@ public class FunctionCallNode extends StatementNode
 		return FunctionName;
 	}
 	
-	public LinkedList<Node> getParameterNames()
+	public LinkedList<Node> getParameters()
 	{
-		return ParameterNames;
+		return Parameters;
 	}
 	
 	public String toString()
 	{
 		String contents = "Function name: " + FunctionName + "\n";
-		if (ParameterNames.isEmpty() == false)
+		if (Parameters.isEmpty() == false)
 		{
-			contents += "Parameter name(s): " + ParameterNames.toString();
+			contents += "Parameter name(s): " + Parameters.toString();
 		}
 		return contents;
 	}

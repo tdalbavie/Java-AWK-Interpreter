@@ -886,7 +886,7 @@ public class UnitTest
 	    Parser parser = new Parser(tokens);
 	    ProgramNode node = parser.Parse();
 	    
-	    BlockNode block = node.getBlock().get(0);
+	    BlockNode block = node.getBlocks().get(0);
 	    FunctionCallNode printFCN = (FunctionCallNode) block.getStatements().get(0);
 	    FunctionCallNode printfFCN = (FunctionCallNode) block.getStatements().get(1);
 	    FunctionCallNode getlineFCN = (FunctionCallNode) block.getStatements().get(2);

@@ -146,7 +146,7 @@ public class Parser
 			AcceptSeparators();
 			
 			// Gives an empty optional as the condition.
-			node.getStartBlock().add(ParseBlock(optionalNode));
+			node.getBeginBlocks().add(ParseBlock(optionalNode));
 			return true;
 		}
 	
@@ -157,7 +157,7 @@ public class Parser
 			AcceptSeparators();
 			
 			// Gives an empty optional as the condition.
-			node.getEndBlock().add(ParseBlock(optionalNode));
+			node.getEndBlocks().add(ParseBlock(optionalNode));
 			return true;
 		}
 		
@@ -175,7 +175,7 @@ public class Parser
 			if(th.MoreTokens() == true)
 			{
 				// Gives a potential condition, otherwise gives an empty.
-				node.getBlock().add(ParseBlock(optionalNode));
+				node.getBlocks().add(ParseBlock(optionalNode));
 				return true;
 			}
 		}

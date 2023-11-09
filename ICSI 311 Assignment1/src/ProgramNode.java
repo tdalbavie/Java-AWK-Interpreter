@@ -3,14 +3,14 @@ import java.util.LinkedList;
 public class ProgramNode extends Node
 {
 	private LinkedList<FunctionDefinitionNode> FDN;
-	private LinkedList<BlockNode> StartBlocks;
+	private LinkedList<BlockNode> BeginBlocks;
 	private LinkedList<BlockNode> EndBlocks;
 	private LinkedList<BlockNode> Blocks;
 	
 	public ProgramNode()
 	{
 		this.FDN = new LinkedList<FunctionDefinitionNode>();
-		this.StartBlocks = new LinkedList<BlockNode>();
+		this.BeginBlocks = new LinkedList<BlockNode>();
 		this.EndBlocks = new LinkedList<BlockNode>();
 		this.Blocks = new LinkedList<BlockNode>();
 	}
@@ -21,17 +21,17 @@ public class ProgramNode extends Node
 		return FDN;
 	}
 	
-	public LinkedList<BlockNode> getStartBlock()
+	public LinkedList<BlockNode> getBeginBlocks()
 	{
-		return StartBlocks;
+		return BeginBlocks;
 	}
 	
-	public LinkedList<BlockNode> getEndBlock()
+	public LinkedList<BlockNode> getEndBlocks()
 	{
 		return EndBlocks;
 	}
 	
-	public LinkedList<BlockNode> getBlock()
+	public LinkedList<BlockNode> getBlocks()
 	{
 		return Blocks;
 	}
@@ -49,12 +49,12 @@ public class ProgramNode extends Node
 			}
 		}
 		
-		if(StartBlocks.isEmpty() == false)
+		if(BeginBlocks.isEmpty() == false)
 		{
 			contents += "Start Blocks:\n";
-			for(int i = 0; i < StartBlocks.size(); i++)
+			for(int i = 0; i < BeginBlocks.size(); i++)
 			{
-				contents += StartBlocks.get(i).toString() + "\n";
+				contents += BeginBlocks.get(i).toString() + "\n";
 			}
 		}
 		
