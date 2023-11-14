@@ -1,4 +1,3 @@
-import java.util.HashMap;
 import java.util.function.Function;
 
 public class BuiltInFunctionDefinitionNode extends FunctionDefinitionNode

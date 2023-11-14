@@ -129,6 +129,9 @@ public class Parser
 		// Adds the FunctionDefinitionNode to the linked list in ProgramNode.
 		node.getFunctionDefinitionNode().add(FDN);
 		
+		// Removes any separators coming after a function so no issues arise when parsing the next chunk of code.
+		AcceptSeparators();
+		
 		return true;
 	}
 	
@@ -217,11 +220,10 @@ public class Parser
 				}
 				
 				block.getStatements().add(optionalStatement.get());
+				
 				// Sets the flag to false after the first statement is successfully parse and present.
 				if(EmptyBlockFlag == true)
 					EmptyBlockFlag = false;
-				
-				// While loop needs to be fixed.
 				
 			}while(true);
 			
@@ -298,6 +300,9 @@ public class Parser
 			
 			IfNode ifNode = new IfNode(conditionNode.get(), statements);
 			
+			// Removes any possible separator.
+			AcceptSeparators();
+			
 			// Checks if there is an else statement following.
 			optionalToken = th.MatchAndRemove(Token.TokenType.ELSE);
 			if(optionalToken.isPresent())
@@ -339,6 +344,9 @@ public class Parser
 						
 						statements = ParseBlock(Optional.empty());
 						
+						// Removes any possible separator.
+						AcceptSeparators();
+						
 						// Adds the next else-if to the chain.
 						current.addIfElse(new IfNode(conditionNode.get(), statements));
 						// Sets current to the next IfNode in the chain.
@@ -360,6 +368,10 @@ public class Parser
 								statements = ParseBlock(Optional.empty());
 								// Adds the else node to the end of the chain.
 								current.addIfElse(new IfNode(statements));
+								
+								// Removes any possible separator.
+								AcceptSeparators();
+								
 								break; // exits the loop since there is no reason to continue.
 							}
 						}

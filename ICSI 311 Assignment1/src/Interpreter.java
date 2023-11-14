@@ -7,7 +7,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -77,9 +76,7 @@ public class Interpreter
 	
 	HashMap<String, InterpreterDataType> globalVariables;
 	HashMap<String, FunctionDefinitionNode> functions;
-	LinkedList<BlockNode> beginBlocks;
-	LinkedList<BlockNode> blocks;
-	LinkedList<BlockNode> endBlocks;
+	ProgramNode program;
 	LineManager lm;
 	
 	public Interpreter(ProgramNode program, Optional<Path> filePath)
@@ -87,10 +84,8 @@ public class Interpreter
 		globalVariables = new HashMap<String, InterpreterDataType>();
 		functions = new HashMap<String, FunctionDefinitionNode>();
 		
-		// Gets the blocks from the program node and defines them as field members for use in InterpretProgram.
-		beginBlocks = program.getBeginBlocks();
-		blocks = program.getBlocks();
-		endBlocks = program.getEndBlocks();
+		// Saves the program to get blocks for processing.
+		this.program = program;
 		
 		List<String> input = new ArrayList<String>();
 		// Checks for file path and populates the list with the file's text, if none is found, it will pass the empty ArrayList of strings in.
@@ -136,13 +131,37 @@ public class Interpreter
 					for (int i = 0; i < totalEntries; i++)
 					{
 						InterpreterDataType value = ((InterpreterArrayDataType) printParameters).getArrayType().get(String.valueOf(i));
-						System.out.print(value.getType());
+						String stringToPrint = value.getType();
+						
+						// This will try and truncate any numbers that can be represented as a whole number.
+						try
+						{
+							float floatValue = Float.parseFloat(stringToPrint);
+							int intValue = (int) floatValue;
+							
+							if (floatValue == intValue || floatValue == (int) floatValue) 
+							{
+			                    System.out.print(intValue + " ");
+			                } 
+							
+							else 
+			                {
+			                    System.out.print(floatValue + " ");
+			                }
+						}
+						
+						catch(NumberFormatException e)
+						{
+							System.out.print(stringToPrint);
+						}
 					}
+					// Goes to a new line for the next output.
+					System.out.println();
 				}
-				// This will be run if print has no parameters, assumes $0 (prints the line).
+				// This will be run if print has no parameters, assumes $0 (prints the line) and goes to the next line.
 				else
 				{
-					System.out.print(globalVariables.get("$0").getType());
+					System.out.print(globalVariables.get("$0").getType() + "\n");
 				}
 			}
 			else
@@ -165,13 +184,35 @@ public class Interpreter
 				// Gets the parameters.
 				InterpreterArrayDataType parameters = (InterpreterArrayDataType) ((InterpreterArrayDataType) printfParameters).getArrayType().get("1");
 				// Makes an array of strings to get the values of the parameters.
-				String parameterValues[] = new String[parameters.getArrayType().size()];
+				Object parameterValues[] = new Object[parameters.getArrayType().size()];
+				
 				for (int i = 0; i < totalEntries; i++)
 				{
-					parameterValues[i] = parameters.getArrayType().get(String.valueOf(i)).getType();
+					String stringToPrint = parameters.getArrayType().get(String.valueOf(i)).getType();
+					// Add each element to the string in their respective form for formating.
+					try
+					{
+						float floatValue = Float.parseFloat(stringToPrint);
+						int intValue = (int) floatValue;
+						
+						if (floatValue == intValue || floatValue == (int) floatValue) 
+						{
+							parameterValues[i] = intValue;
+		                } 
+						
+						else 
+		                {
+							parameterValues[i] = floatValue;
+		                }
+					}
+					
+					catch(NumberFormatException e)
+					{
+						parameterValues[i] = stringToPrint;
+					}
 				}
 				// Prints out the formated result.
-				System.out.printf(formatedString.getType(), (Object[]) parameterValues);
+				System.out.printf(formatedString.getType(), parameterValues);
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in printf statement.");
@@ -271,11 +312,12 @@ public class Interpreter
 		{
 			if(indexParameters instanceof InterpreterArrayDataType)
 			{
-				InterpreterDataType IDT = ((InterpreterArrayDataType) indexParameters).getArrayType().get("0");
-				
+				// Gets the string to search in.
 				String in = ((InterpreterArrayDataType) indexParameters).getArrayType().get("0").getType();
+				// Gets the string that will be used to search for a matching occurrence.
 				String find = ((InterpreterArrayDataType) indexParameters).getArrayType().get("1").getType();
 				
+				// Finds the first occurrence of the string if any.
 				int position = in.indexOf(find);
 				
 				if (position != -1)
@@ -495,7 +537,7 @@ public class Interpreter
 			if(tolowerParameters instanceof InterpreterArrayDataType)
 			{
 				InterpreterDataType parameter = ((InterpreterArrayDataType) tolowerParameters).getArrayType().get("0");
-				return tolowerParameters.getType().toLowerCase();
+				return parameter.getType().toLowerCase();
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in match statement.");
@@ -506,7 +548,7 @@ public class Interpreter
 			if(toupperParameters instanceof InterpreterArrayDataType)
 			{
 				InterpreterDataType parameter = ((InterpreterArrayDataType) toupperParameters).getArrayType().get("0");
-				return toupperParameters.getType().toUpperCase();
+				return parameter.getType().toUpperCase();
 			}
 			else
 				throw new IllegalArgumentException("Expected IADT in match statement.");
@@ -514,29 +556,30 @@ public class Interpreter
 		
 	}
 	
+	// This will run the interpreter.
 	public void InterpretProgram()
 	{
-		for(BlockNode beginBlock : beginBlocks)
+		for(BlockNode beginBlock : program.getBeginBlocks())
 		{
 			InterpretBlock(beginBlock);
 		}
 		
-		// This will run call run all non begin or end blocks for each record of SplitAndAssign.
+		// This will run all non begin or end blocks for each record of SplitAndAssign.
 		while(lm.SplitAndAssign() != false)
 		{
-			for(BlockNode block : blocks)
+			for(BlockNode block : program.getBlocks())
 			{
 				InterpretBlock(block);
 			}
 		}
 		
-		for(BlockNode endBlock : endBlocks)
+		for(BlockNode endBlock : program.getEndBlocks())
 		{
 			InterpretBlock(endBlock);
 		}
 	}
 	
-	public void InterpretBlock(BlockNode block)
+	private void InterpretBlock(BlockNode block)
 	{
 		// Checks to see if there is a condition.
 		if (block.getCondition().isPresent())
@@ -545,8 +588,8 @@ public class Interpreter
 			// Evaluates the condition of the block.
 			InterpreterDataType conditionResult = GetIDT(condition, Optional.empty());
 			
-			// Checks if the condition is true, will not execute if condition is false.
-			if (conditionResult.getType().equals("1") || !conditionResult.getType().isEmpty())
+			// Checks if the condition is true (not "0"), will not execute if condition is false.
+			if (conditionResult.getType().equals("1"))
 			{
 				// Process all statements in the block.
 				for (Node statement : block.getStatements())
@@ -573,6 +616,9 @@ public class Interpreter
 		if (stmt instanceof AssignmentNode)
 		{
 			AssignmentNode assignmentStmt = (AssignmentNode) stmt;
+			OperationNode operation = null;
+			if (assignmentStmt.getExpression() instanceof OperationNode)
+				operation = (OperationNode) assignmentStmt.getExpression();
 			
 			if (assignmentStmt.getTarget() instanceof VariableReferenceNode)
 			{
@@ -580,8 +626,20 @@ public class Interpreter
 				InterpreterDataType target = GetIDT(assignmentStmt.getTarget(), localVariables);
 				InterpreterDataType result = GetIDT(assignmentStmt.getExpression(), localVariables);
 				
-				// Sets the value of the target to the result.
-				target.setType(result.getType());
+				if (operation != null)
+				{
+					// This handles an edge case where post operations return the previous value before their operation and causes the variable to never increment.
+					if (operation.getOperation() != OperationNode.operations.POSTINC && operation.getOperation() != OperationNode.operations.POSTDEC)
+					{
+						// Sets the value of the target to the result.
+						target.setType(result.getType());
+					}
+				}
+				else
+				{
+					// Sets the value of the target to the result.
+					target.setType(result.getType());
+				}
 
 				// Returns a new instance of ReturnType with the result of the assignment.
 				return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(result.getType()));
@@ -726,13 +784,13 @@ public class Interpreter
 				rt = InterpretListOfStatements(statements.getStatements(), localVariables);
 				
 				// Breaks from the loop when a break is encountered.
-				if (rt.getTypeReturned() != ReturnType.ReturnTypes.BREAK)
+				if (rt.getTypeReturned() == ReturnType.ReturnTypes.BREAK)
 					break;
 				// Returns the ReturnType if a return is encountered.
-				else if (rt.getTypeReturned() != ReturnType.ReturnTypes.RETURN)
+				else if (rt.getTypeReturned() == ReturnType.ReturnTypes.RETURN)
 					return rt;
 				
-			}while(!GetIDT(doWhileStmt.getCondition(), localVariables).getType().equals("0") || !GetIDT(doWhileStmt.getCondition(), localVariables).getType().isEmpty());
+			}while(!GetIDT(doWhileStmt.getCondition(), localVariables).getType().equals("0") && !GetIDT(doWhileStmt.getCondition(), localVariables).getType().isEmpty());
 			
 			// Returns normal and treats it as a successful execution.
 			return new ReturnType(ReturnType.ReturnTypes.NORMAL);
@@ -742,23 +800,24 @@ public class Interpreter
 		{
 			ForNode forStmt = (ForNode) stmt;
 			BlockNode statements = forStmt.getStatements();
-			ReturnType initialization = ProcessStatement(forStmt.getInitialization(), localVariables);
+			// Initializes the variable in the for loops initialization.
+			ProcessStatement(forStmt.getInitialization(), localVariables);
 			// Initializes the ReturnType for use in the loop.
 			ReturnType rt = new ReturnType(ReturnType.ReturnTypes.NORMAL);
 			
 			// Checks for a break or if the condition is false.
-			while(!GetIDT(forStmt.getCondition(), localVariables).getType().equals("0") || !GetIDT(forStmt.getCondition(), localVariables).getType().isEmpty())
+			while(!GetIDT(forStmt.getCondition(), localVariables).getType().equals("0") && !GetIDT(forStmt.getCondition(), localVariables).getType().isEmpty())
 			{
 				rt = InterpretListOfStatements(statements.getStatements(), localVariables);
 				
-				// Evaluates the increment/decrement statement (We will not use the return since this is simply for an assign.
+				// Evaluates the increment/decrement statement (We will not use the return since this is simply for an assign).
 				ProcessStatement(forStmt.getIncrement(), localVariables);
 				
 				// Breaks from the loop when a break is encountered.
-				if (rt.getTypeReturned() != ReturnType.ReturnTypes.BREAK)
+				if (rt.getTypeReturned() == ReturnType.ReturnTypes.BREAK)
 					break;
 				// Returns the ReturnType if a return is encountered.
-				else if (rt.getTypeReturned() != ReturnType.ReturnTypes.RETURN)
+				else if (rt.getTypeReturned() == ReturnType.ReturnTypes.RETURN)
 					return rt;
 			}
 			
@@ -884,8 +943,19 @@ public class Interpreter
 		if (stmt instanceof FunctionCallNode)
 		{
 			FunctionCallNode fcnStmt = (FunctionCallNode) stmt;
-			String FunctionCallResult = RunFunctionCall(fcnStmt, localVariables.get());
-			return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(FunctionCallResult));
+			String FunctionCallResult;
+			
+			// Checks if there is a local variables list.
+			if (localVariables.isPresent())
+				FunctionCallResult = RunFunctionCall(fcnStmt, localVariables.get());
+			else
+				FunctionCallResult = RunFunctionCall(fcnStmt, null);
+			
+			// Checks for when the result is null like with print and no parameters.
+			if (FunctionCallResult != null)
+				return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(FunctionCallResult));
+			else
+				return new ReturnType(ReturnType.ReturnTypes.NORMAL);
 		}
 		
 		if (stmt instanceof IfNode)
@@ -898,13 +968,20 @@ public class Interpreter
 			// Loops until no more nodes are found.
 			while(tempIfNode != null)
 			{
-				// Breaks from the loop when the condition is met.
-				if (tempIfNode.getCondition().isEmpty() 
-					|| GetIDT(tempIfNode.getCondition().get(), localVariables).getType().equals("1") 
-					|| !GetIDT(tempIfNode.getCondition().get(), localVariables).getType().isEmpty())
-				{
+				// Breaks if it finds an else statement (no condition in IfNode is an else)
+				if (tempIfNode.getCondition().isEmpty())
 					break;
-				}
+				
+				// Computes the condition.
+				InterpreterDataType condition = GetIDT(tempIfNode.getCondition().get(), localVariables);
+				
+				// Breaks from the loop if a true condition is processed.
+				if (condition.getType().equals("1"))
+					break;
+				
+				// Breaks from the loop if a non-empty non-zero string is found.
+				if (!condition.getType().isEmpty() && !condition.getType().equals("0"))
+					break;
 				
 				tempIfNode = tempIfNode.getNextIf();
 			}
@@ -912,7 +989,7 @@ public class Interpreter
 			// This will return the ReturnType from InterpretListOfStatements
 			if (tempIfNode != null)
 			{
-				return InterpretListOfStatements(statements.getStatements(), localVariables);
+				return InterpretListOfStatements(tempIfNode.getStatements().getStatements(), localVariables);
 			}
 			
 			// This will return no value if no condition was found by the end of the if chain.
@@ -945,15 +1022,15 @@ public class Interpreter
 			ReturnType rt = new ReturnType(ReturnType.ReturnTypes.NORMAL);
 			
 			// Calls InterpreterListOfStatements until a break is returned.
-			while(!GetIDT(whileStmt.getCondition(), localVariables).getType().equals("0") || !GetIDT(whileStmt.getCondition(), localVariables).getType().isEmpty())
+			while(!GetIDT(whileStmt.getCondition(), localVariables).getType().equals("0") && !GetIDT(whileStmt.getCondition(), localVariables).getType().isEmpty())
 			{
 				rt = InterpretListOfStatements(statements.getStatements(), localVariables);
 				
 				// Breaks from the loop when a break is encountered.
-				if (rt.getTypeReturned() != ReturnType.ReturnTypes.BREAK)
+				if (rt.getTypeReturned() == ReturnType.ReturnTypes.BREAK)
 					break;
 				// Returns the ReturnType if a return is encountered.
-				else if (rt.getTypeReturned() != ReturnType.ReturnTypes.RETURN)
+				else if (rt.getTypeReturned() == ReturnType.ReturnTypes.RETURN)
 					return rt;
 			}
 			
@@ -1021,8 +1098,17 @@ public class Interpreter
 		if (node instanceof FunctionCallNode)
 		{
 			FunctionCallNode fcn = (FunctionCallNode) node;
-			String FunctionCallResult = RunFunctionCall(fcn, localVariables.get());
+			String FunctionCallResult;
+			
+			// Checks if there is a local variables list.
+			if (localVariables.isPresent())
+				FunctionCallResult = RunFunctionCall(fcn, localVariables.get());
+			else
+				FunctionCallResult = RunFunctionCall(fcn, null);
+			
 			return new InterpreterDataType(FunctionCallResult);
+
+			
 		}
 		
 		// A PatternNode should not be found when passing to a function or assignment, an exception will be thrown.
@@ -1146,8 +1232,10 @@ public class Interpreter
 					// Adds the new array to the globalVariables.
 					globalVariables.put(variableName, IADT);
 					
+					// Gets the new IDT that was inserted in the IADT for return.
+					InterpreterDataType newIndex = IADT.getArrayType().get(index.getType());
 					// Returns the newly created IDT attached to the index.
-					return globalVariables.get(variableName);
+					return newIndex;
 				}
 			}
 			
@@ -1820,12 +1908,35 @@ public class Interpreter
 				// Creates a new IADT for the lambda functions.
 				InterpreterArrayDataType parameters = new InterpreterArrayDataType();
 				
-				// Processes each parameter in the function call and puts them in a HashMap.
-				int i = 0;
-				for (Node parameter : fcn.getParameters())
+				// This will deal with the one case where it requires a non-variadic parameter and a HashMap of variadic parameters (This could be empty).
+				if (FunctionCallName.equals("printf"))
 				{
-					// This will create custom numbered keys that the lambda functions can process.
-					parameters.getArrayType().put(Integer.toString(i), GetIDT(fcn.getParameters().get(i++), Optional.empty()));
+					// Resolves the string for printf.
+					InterpreterDataType printfString = GetIDT(fcn.getParameters().get(0), Optional.empty());
+					InterpreterArrayDataType printfParameters = new InterpreterArrayDataType();
+					
+					// Processes each parameter in the function call and puts them in a HashMap.
+					for (int i = 1; i < fcn.getParameters().size(); i++)
+					{
+						// This will create custom numbered keys that the lambda functions can process.
+						printfParameters.getArrayType().put(Integer.toString(i - 1), GetIDT(fcn.getParameters().get(i), Optional.empty()));
+					}
+					
+					// Inserts the non-variadic and variadic parameters of printf.
+					parameters.getArrayType().put("0", printfString);
+					parameters.getArrayType().put("1", printfParameters);
+				}
+				
+				else
+				{
+					// Processes each parameter in the function call and puts them in a HashMap.
+					int i = 0;
+					for (Node parameter : fcn.getParameters())
+					{
+						// This will create custom numbered keys that the lambda functions can process.
+						parameters.getArrayType().put(Integer.toString(i), GetIDT(parameter, Optional.empty()));
+						i++;
+					}
 				}
 				
 				// Returns the result of the BuiltIn function's execution.
@@ -1839,17 +1950,17 @@ public class Interpreter
 				if (fdn.getParameterNames().size() != fcn.getParameters().size())
 					throw new IllegalArgumentException("Error: Mismatched parameters: The function " + FunctionCallName + " can only have " + fdn.getParameterNames().size() + " parameters.");
 				
-				HashMap<String, InterpreterDataType> parameters = new HashMap<String, InterpreterDataType>();
+				locals = new HashMap<String, InterpreterDataType>();
 				
 				// Processes each parameter in the function call and puts them in a HashMap.
 				int i = 0;
 				for (String parameterName : fdn.getParameterNames())
 				{
 					// This will use the user defined parameter names as the keys to the local variables.
-					parameters.put(parameterName, GetIDT(fcn.getParameters().get(i++), Optional.empty()));
+					locals.put(parameterName, GetIDT(fcn.getParameters().get(i++), Optional.empty()));
 				}
 				
-				ReturnType rt = InterpretListOfStatements(fdn.getStatements(), Optional.of(parameters));
+				ReturnType rt = InterpretListOfStatements(fdn.getStatements(), Optional.of(locals));
 				
 				// Throws if a break was found in a function.
 				if (rt.getTypeReturned() == ReturnType.ReturnTypes.BREAK)

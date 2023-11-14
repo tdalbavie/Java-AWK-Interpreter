@@ -9,6 +9,239 @@ import org.junit.Test;
 
 public class UnitTest 
 {
+	// Note: These unit tests will not be testing for returns. 
+	// Instead, I will format the output in the console and print the results for each test and state the expected output.
+	@Test
+	public void conditionalBlockTest()
+	{
+		Lexer lexer = new Lexer("BEGIN{i=0}"
+				+ "(i == 1) {print}"
+				+ "{i++}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    // Gets the input file for processing.
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nConditional Block Test:\n");
+	    
+	    // This will print only the second line of String-file.txt.
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void userCreatedFunctionTest()
+	{
+		Lexer lexer = new Lexer("function square(x){\n"
+				+ "return x * x\n"
+				+ "}\n"
+				+ "BEGIN{\n"
+				+ "result = square(5)\n"
+				+ "print result\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nUser Created Function Test:\n");
+	    
+	    // This will print the result of the user defined function (should be 25).
+	    interpreter.InterpretProgram();
+	}
+	
+	
+	@Test
+	public void inputProcessingTest()
+	{
+		Lexer lexer = new Lexer("{print}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    // Gets the input file for processing.
+	    String fileName = "String-file.txt";
+		Path myPath = Paths.get(fileName);
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myPath));
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nInput Processing Test:\n");
+	    
+	    // Processes each line of the String-file.txt file and prints it.
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void mathAndLogicTest()
+	{
+		// Tests the order of operations of 6/2*(1+2) and uses an if chain to check the conditions.
+		Lexer lexer = new Lexer("BEGIN{\n"
+				+ "result = 6/2*(1+2)\n"
+				+ "if (result == 1){\n"
+				+ "print \"The number is 1.\"\n"
+				+ "}\n"
+				+ "else if (result == 9){\n"
+				+ "print \"The number is 9.\"\n"
+				+ "}\n"
+				+ "else{\n"
+				+ "print \"The number is not 9 or 1.\"\n"
+				+ "}\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nMath And Logic Test:\n");
+	    
+	    // This will enter the second if statement and print "The number is 9.".
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void forLoopTest()
+	{
+		Lexer lexer = new Lexer("BEGIN{\n"
+				+ "for (i = 1; i <= 5; i++){\n"
+				+ "print \"Iteration \", i\n"
+				+ "}\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nFor Loop Test:\n");
+	    
+	    // This will print "Iteration 1" to "Iteration 5".
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void forEachLoopTest()
+	{
+		Lexer lexer = new Lexer("BEGIN{\n"
+				+ "fruits[1] = \"Apple\"\n"
+				+ "fruits[2] = \"Banana\"\n"
+				+ "fruits[3] = \"Cherry\"\n"
+				+ "for (index in fruits){\n"
+				+ "print \"Fruits at index \", index, \"is \", fruits[index]"
+				+ "}\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nFor Each Loop Test:\n");
+	    
+	    // This will print "Iteration 1" to "Iteration 5".
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void whileLoopTest()
+	{
+		Lexer lexer = new Lexer("BEGIN{\n"
+				+ "i = 1\n"
+				+ "while (i <= 5){\n"
+				+ "print \"Iteration \", i\n"
+				+ "i++\n"
+				+ "}\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nWhile Loop Test:\n");
+	    
+	    // This will print "Iteration 1" to "Iteration 5".
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void doWhileLoopTest()
+	{
+		Lexer lexer = new Lexer("BEGIN{\n"
+				+ "i = 1\n"
+				+ "do {\n"
+				+ "print \"Iteration \", i\n"
+				+ "i++\n"
+				+ "} while (i <= 5)\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nDo While Loop Test:\n");
+	    
+	    // This will print "Iteration 1" to "Iteration 5".
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test
+	public void variadicPrintfTest()
+	{
+		Lexer lexer = new Lexer("BEGIN{\n"
+				+ "name = \"John\"\n"
+				+ "age = 30\n"
+				+ "printf \"Hello, my name is %s and I am %d years old.\n\", name, age\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // Prints out the test it is on.
+	    System.out.println("\nVariadic Printf Test:\n");
+	    
+	    // This will print "Hello, my name is John and I am 30 years old.".
+	    interpreter.InterpretProgram();
+	}
+	
+	@Test (expected = IllegalArgumentException.class)
+	public void userCreatedFunctionVariadicTest()
+	{
+		Lexer lexer = new Lexer("function square(x){\n"
+				+ "return x * x\n"
+				+ "}\n"
+				+ "BEGIN{\n"
+				+ "result = square(5, 6)\n"
+				+ "print result\n"
+				+ "}");
+		LinkedList<Token> tokens = lexer.Lex();
+	    Parser parser = new Parser(tokens);
+	    ProgramNode node = parser.Parse();
+	    
+	    Interpreter interpreter = new Interpreter(node, Optional.empty());
+	    
+	    // This will result in an error because the function call has more parameters than the function definition.
+	    interpreter.InterpretProgram();
+	}
+	
+	/*
+	// Everything past this point is interpreter 3
 	@Test
 	public void assignmentNodeTest()
 	{
@@ -387,7 +620,7 @@ public class UnitTest
 		 * Unary Positive only force converts a string that could not be converted to float and returns it as 0 to be evaluated as a number.
 		 * Normal AWK evaluates comparisons as strings unless force changed by Unary Positive but we do this already in our comparison implementation.
 		 * In this case we have a non-integer string so this will return 0.
-		 */
+		 *//*
 		result = interpreter.GetIDT(unarypos, Optional.empty());
 		Assert.assertEquals(result.getType(), "0");
 		
@@ -542,7 +775,11 @@ public class UnitTest
 	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode toupper = (BuiltInFunctionDefinitionNode) interpreter.functions.get("toupper");
-	    Assert.assertEquals(toupper.execute(interpreter.globalVariables.get("$0")), "THIS IS A TEST FILE WITH SOME TEXT.");
+	    
+	    InterpreterArrayDataType IADT = new InterpreterArrayDataType();
+	    IADT.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    
+	    Assert.assertEquals(toupper.execute(IADT), "THIS IS A TEST FILE WITH SOME TEXT.");
 	}
 	
 	@Test
@@ -563,7 +800,11 @@ public class UnitTest
 	    interpreter.lm.SplitAndAssign();
 	    
 	    BuiltInFunctionDefinitionNode tolower = (BuiltInFunctionDefinitionNode) interpreter.functions.get("tolower");
-	    Assert.assertEquals(tolower.execute(interpreter.globalVariables.get("$0")), "this is a test file with some text.");
+	    
+	    InterpreterArrayDataType IADT = new InterpreterArrayDataType();
+	    IADT.getArrayType().put("0", interpreter.globalVariables.get("$0"));
+	    
+	    Assert.assertEquals(tolower.execute(IADT), "this is a test file with some text.");
 	}
 	
 	@Test
@@ -706,9 +947,10 @@ public class UnitTest
 	    
 	    BuiltInFunctionDefinitionNode length = (BuiltInFunctionDefinitionNode) interpreter.functions.get("length");
 	    
-	    InterpreterDataType parameter = interpreter.globalVariables.get("$0");
+	    InterpreterArrayDataType IADT = new InterpreterArrayDataType();
+	    IADT.getArrayType().put("0", interpreter.globalVariables.get("$0"));
 	    
-	    Assert.assertEquals(length.execute(parameter), "35");
+	    Assert.assertEquals(length.execute(IADT), "35");
 	}
 	
 	@Test

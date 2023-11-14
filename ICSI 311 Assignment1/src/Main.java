@@ -3,6 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedList;
+import java.util.Optional;
 
 public class Main 
 {
@@ -23,21 +24,22 @@ public class Main
 		
 		// Passes file content to Lexer.
 		Lexer lex = new Lexer(fileContents);
-		// Returns LinkedList of tokens
+		// Returns LinkedList of tokens.
 		LinkedList<Token> tokens = lex.Lex();
-		
-		// Prints each token
-		for (int i = 0; i < tokens.size(); i++)
-		{
-			System.out.print(tokens.get(i).ToStringValue() + " ");
-		}
-		System.out.println();
-		
+		// Takes in the LinkedList of tokens for parsing.
 		Parser pars = new Parser(tokens);
+		// Parses the tokens into a program node for interpreter.
 	    ProgramNode node = pars.Parse();
-	    // Prints out ProgramNode.
 	    
-	    int i = 2;
+	    // Gets an input text file for processing if provided.
+	    String textFileName = "String-file.txt";
+		Path myTextPath = Paths.get(textFileName);
+	    
+		// This will process the program node and optional text file.
+	    Interpreter interpreter = new Interpreter(node, Optional.of(myTextPath));
+	    
+	    // This executes the program.
+	    interpreter.InterpretProgram();
 	}
 }
 	
