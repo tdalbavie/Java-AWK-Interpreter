@@ -642,7 +642,7 @@ public class Interpreter
 				}
 
 				// Returns a new instance of ReturnType with the result of the assignment.
-				return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(result.getType()));
+				return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(target.getType()));
 			}
 			
 			// Checks for OperationNode and then checks for a field reference operation.
@@ -657,10 +657,23 @@ public class Interpreter
 					InterpreterDataType result = GetIDT(assignmentStmt.getExpression(), localVariables);
 					
 					// Sets the value of the target to the result.
-					targetValue.setType(result.getType());
+					if (operation != null)
+					{
+						// This handles an edge case where post operations return the previous value before their operation and causes the variable to never increment.
+						if (operation.getOperation() != OperationNode.operations.POSTINC && operation.getOperation() != OperationNode.operations.POSTDEC)
+						{
+							// Sets the value of the target to the result.
+							targetValue.setType(result.getType());
+						}
+					}
+					else
+					{
+						// Sets the value of the target to the result.
+						targetValue.setType(result.getType());
+					}
 					
 					// Returns a new instance of ReturnType with the result of the assignment.
-					return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(result.getType()));
+					return new ReturnType(ReturnType.ReturnTypes.NORMAL, Optional.of(targetValue.getType()));
 				}
 				
 				// Throws an exception when the OperationNode is not a field reference.
@@ -989,7 +1002,7 @@ public class Interpreter
 			// This will return the ReturnType from InterpretListOfStatements
 			if (tempIfNode != null)
 			{
-				return InterpretListOfStatements(tempIfNode.getStatements().getStatements(), localVariables);
+				return InterpretListOfStatements(statements.getStatements(), localVariables);
 			}
 			
 			// This will return no value if no condition was found by the end of the if chain.
@@ -1050,6 +1063,9 @@ public class Interpreter
 		{
 			// Create an AssignmentNode so we can more easily work on it.
 			AssignmentNode an = (AssignmentNode) node;
+			OperationNode operation = null;
+			if (an.getExpression() instanceof OperationNode)
+				operation = (OperationNode) an.getExpression();
 			
 			if (an.getTarget() instanceof VariableReferenceNode)
 			{
@@ -1057,7 +1073,20 @@ public class Interpreter
 				InterpreterDataType target = GetIDT(an.getTarget(), localVariables);
 				InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
 				
-				target.setType(result.getType());
+				if (operation != null)
+				{
+					// This handles an edge case where post operations return the previous value before their operation and causes the variable to never increment.
+					if (operation.getOperation() != OperationNode.operations.POSTINC && operation.getOperation() != OperationNode.operations.POSTDEC)
+					{
+						// Sets the value of the target to the result.
+						target.setType(result.getType());
+					}
+				}
+				else
+				{
+					// Sets the value of the target to the result.
+					target.setType(result.getType());
+				}
 				
 				return target;
 			}
@@ -1073,9 +1102,23 @@ public class Interpreter
 					InterpreterDataType targetValue = GetIDT(target, localVariables);
 					InterpreterDataType result = GetIDT(an.getExpression(), localVariables);
 					
-					targetValue.setType(result.getType());
+					// Sets the value of the target to the result.
+					if (operation != null)
+					{
+						// This handles an edge case where post operations return the previous value before their operation and causes the variable to never increment.
+						if (operation.getOperation() != OperationNode.operations.POSTINC && operation.getOperation() != OperationNode.operations.POSTDEC)
+						{
+							// Sets the value of the target to the result.
+							targetValue.setType(result.getType());
+						}
+					}
+					else
+					{
+						// Sets the value of the target to the result.
+						targetValue.setType(result.getType());
+					}
 					
-					return result;
+					return targetValue;
 				}
 				
 				// Throws an exception when the OperationNode is not a field reference.
