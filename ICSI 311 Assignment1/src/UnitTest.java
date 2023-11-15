@@ -14,8 +14,8 @@ public class UnitTest
 	@Test
 	public void conditionalBlockTest()
 	{
-		Lexer lexer = new Lexer("BEGIN{i=0}"
-				+ "(i == 1) {print}"
+		Lexer lexer = new Lexer("BEGIN{i=0}\n"
+				+ "(i == 1) {print}\n"
 				+ "{i++}");
 		LinkedList<Token> tokens = lexer.Lex();
 	    Parser parser = new Parser(tokens);

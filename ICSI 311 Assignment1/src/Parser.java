@@ -150,6 +150,10 @@ public class Parser
 			
 			// Gives an empty optional as the condition.
 			node.getBeginBlocks().add(ParseBlock(optionalNode));
+			
+			// Removes any possible separator after the block.
+			AcceptSeparators();
+			
 			return true;
 		}
 	
@@ -161,13 +165,17 @@ public class Parser
 			
 			// Gives an empty optional as the condition.
 			node.getEndBlocks().add(ParseBlock(optionalNode));
+			
+			// Removes any possible separator after the block.
+			AcceptSeparators();
+			
 			return true;
 		}
 		
 		// If action does not have a BEGIN or END.
 		if (optionalToken.isPresent() == false)
 		{
-			//th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop in Parser 1.
+			// th.MatchAndRemove(Token.TokenType.WORD); // Strictly for JUnit test to get rid of "a" to prevent infinite loop in Parser 1.
 			// Checks for a potential condition, if there isn't one it will remain empty and pass it to ParseBlock.
 			optionalNode = ParseOperation();
 			
@@ -179,6 +187,10 @@ public class Parser
 			{
 				// Gives a potential condition, otherwise gives an empty.
 				node.getBlocks().add(ParseBlock(optionalNode));
+				
+				// Removes any possible separator after the block.
+				AcceptSeparators();
+				
 				return true;
 			}
 		}

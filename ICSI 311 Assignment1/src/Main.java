@@ -1,3 +1,5 @@
+// Made by Thomas Dalbavie.
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,7 +11,18 @@ public class Main
 {
 	public static void main(String args[])
 	{
-		String fileName = "file.txt";
+		if (args.length == 0)
+		{
+			System.out.println("Error: Invalid input: Usage: <AWK program file name/path> [<text file name/path>].");
+			return;
+		}
+		
+		// Gets the length of the input.
+		int inputLength = args.length;
+		
+		// This will hold the first file name from command line (This is assumed to be the AWK program file).
+		String fileName = args[0];
+		// String fileName = "file.txt";
 		String fileContents = "";
 		Path myPath = Paths.get(fileName);
 		
@@ -31,12 +44,23 @@ public class Main
 		// Parses the tokens into a program node for interpreter.
 	    ProgramNode node = pars.Parse();
 	    
-	    // Gets an input text file for processing if provided.
-	    String textFileName = "String-file.txt";
-		Path myTextPath = Paths.get(textFileName);
+	    String textFileName;
+	    Path myTextPath;
+	    Interpreter interpreter;
 	    
-		// This will process the program node and optional text file.
-	    Interpreter interpreter = new Interpreter(node, Optional.of(myTextPath));
+	    // Checks if the user provided an text file to work on.
+		if(inputLength == 2)
+		{
+		    // Gets an input text file for processing if provided.
+		    textFileName = args[1];
+			myTextPath = Paths.get(textFileName);
+			
+			// This will process the program node and optional text file.
+		    interpreter = new Interpreter(node, Optional.of(myTextPath));
+		}
+	    
+		else
+			interpreter = new Interpreter(node, Optional.empty());
 	    
 	    // This executes the program.
 	    interpreter.InterpretProgram();

@@ -629,6 +629,7 @@ public class Interpreter
 				if (operation != null)
 				{
 					// This handles an edge case where post operations return the previous value before their operation and causes the variable to never increment.
+					// These operations already do assignment on their own so I skip the assignment of post operations, pre operations do not matter as they return the new value.
 					if (operation.getOperation() != OperationNode.operations.POSTINC && operation.getOperation() != OperationNode.operations.POSTDEC)
 					{
 						// Sets the value of the target to the result.
@@ -974,7 +975,6 @@ public class Interpreter
 		if (stmt instanceof IfNode)
 		{
 			IfNode ifStmt = (IfNode) stmt;
-			BlockNode statements = ifStmt.getStatements();
 			// Using a temporary IfNode to walk through the linked list.
 			IfNode tempIfNode = ifStmt;
 			
@@ -1002,7 +1002,7 @@ public class Interpreter
 			// This will return the ReturnType from InterpretListOfStatements
 			if (tempIfNode != null)
 			{
-				return InterpretListOfStatements(statements.getStatements(), localVariables);
+				return InterpretListOfStatements(tempIfNode.getStatements().getStatements(), localVariables);
 			}
 			
 			// This will return no value if no condition was found by the end of the if chain.

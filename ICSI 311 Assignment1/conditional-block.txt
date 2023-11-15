@@ -1,0 +1,4 @@
+# This will print the second line in the text file provided.
+BEGIN{i = 0}
+(i == 1) {print}
+{i++}

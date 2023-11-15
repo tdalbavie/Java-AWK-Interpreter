@@ -1,0 +1,10 @@
+# This will print "Iteration 1" through "Iteration 5".
+BEGIN{
+fruits[1] = "Apple"
+fruits[2] = "Banana"
+fruits[3] = "Cherry"
+
+for (index in fruits){
+print "Fruits at index ", index, "is ", fruits[index]
+}
+}

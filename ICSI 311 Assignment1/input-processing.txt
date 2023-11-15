@@ -1,0 +1,2 @@
+# This will print all lines in a text file.
+{print}

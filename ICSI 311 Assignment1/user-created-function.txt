@@ -1,0 +1,9 @@
+# This will print the result of the user-defined function (This should be 25).
+function square(x){
+return x * x
+}
+
+BEGIN{
+result = square(5)
+print result
+}

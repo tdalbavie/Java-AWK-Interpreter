@@ -1,0 +1,9 @@
+# This will print "Iteration 1" to "Iteration 5".
+BEGIN{
+i = 1
+
+while (i <= 5){
+print "Iteration ", i
+i++
+}
+}
